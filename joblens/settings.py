@@ -104,3 +104,4 @@ if not DEBUG:
     CSRF_COOKIE_SECURE                = True
     SECURE_HSTS_SECONDS               = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS    = True
+CSRF_TRUSTED_ORIGINS = os.environ.get("CSRF_TRUSTED_ORIGINS", "https://job-lens-production-b268.up.railway.app").split(",")
