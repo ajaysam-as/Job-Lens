@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobLens — AI-Powered Job Matching</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#0f0e0d;--paper:#faf8f4;--cream:#f0ece3;--accent:#2563eb;--accent2:#7c3aed;--muted:#6b7280;--border:#e5e7eb;--card:#fff}
+body{font-family:'Outfit',sans-serif;background:var(--paper);color:var(--ink)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:1.2rem 4rem;border-bottom:1px solid var(--border);background:var(--paper);position:sticky;top:0;z-index:100}
+.logo{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--ink)}.logo span{color:var(--accent)}
+.nav-links{display:flex;gap:1rem;align-items:center}
+.btn{padding:.6rem 1.4rem;border-radius:8px;font-family:'Outfit',sans-serif;font-size:.9rem;font-weight:500;cursor:pointer;text-decoration:none;transition:all .2s}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--ink)}.btn-ghost:hover{border-color:var(--ink)}
+.btn-primary{background:var(--accent);color:#fff;border:none}.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px)}
+.btn-lg{padding:.9rem 2.2rem;font-size:1rem;border-radius:10px}
+
+/* Hero */
+.hero{text-align:center;padding:5rem 2rem 4rem;max-width:900px;margin:0 auto}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:20px;padding:.35rem 1rem;font-size:.8rem;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:1.5rem}
+.hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,6vw,4rem);line-height:1.1;letter-spacing:-.03em;margin-bottom:1.25rem}
+.hero h1 em{font-style:italic;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:1.1rem;color:var(--muted);max-width:550px;margin:0 auto 2.5rem;line-height:1.7;font-weight:300}
+.hero-cta{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+.stats{display:flex;justify-content:center;gap:3rem;margin-top:4rem;flex-wrap:wrap}
+.stat-item{text-align:center}.stat-num{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--ink)}
+.stat-label{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em}
+
+/* Portals */
+.portals{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;padding:2rem;background:var(--cream);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.portal-badge{display:flex;align-items:center;gap:.5rem;padding:.5rem 1.2rem;background:var(--card);border:1px solid var(--border);border-radius:20px;font-size:.85rem;font-weight:500}
+.portal-dot{width:8px;height:8px;border-radius:50%}
+
+/* Features */
+.features{padding:5rem 2rem;max-width:1100px;margin:0 auto}
+.section-label{font-family:'DM Mono',monospace;font-size:.75rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:1rem}
+.section-title{font-family:'DM Serif Display',serif;font-size:2.2rem;letter-spacing:-.02em;margin-bottom:3rem}
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1.5rem}
+.feature-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:2rem;transition:all .2s}
+.feature-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 10px 30px rgba(37,99,235,.08)}
+.feature-icon{font-size:2rem;margin-bottom:1rem}
+.feature-card h3{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:.5rem}
+.feature-card p{color:var(--muted);font-size:.9rem;line-height:1.6}
+
+/* How it works */
+.how{background:var(--ink);color:var(--paper);padding:5rem 2rem;text-align:center}
+.how .section-title{color:var(--paper)}
+.how .section-label{color:#9ca3af}
+.steps{display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;max-width:900px;margin:0 auto}
+.step{flex:1;min-width:180px;max-width:220px}
+.step-num{width:48px;height:48px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'DM Serif Display',serif;font-size:1.3rem;margin:0 auto 1rem}
+.step h3{font-size:1rem;font-weight:500;margin-bottom:.5rem;color:var(--paper)}
+.step p{font-size:.85rem;color:#9ca3af;line-height:1.5}
+.step-arrow{font-size:1.5rem;color:#4b5563;margin-top:1.5rem;display:none}
+
+/* CTA Section */
+.cta-section{padding:5rem 2rem;text-align:center;max-width:700px;margin:0 auto}
+.cta-section h2{font-family:'DM Serif Display',serif;font-size:2.5rem;letter-spacing:-.02em;margin-bottom:1rem}
+.cta-section p{color:var(--muted);margin-bottom:2rem;font-size:1rem}
+
+footer{border-top:1px solid var(--border);padding:2rem 4rem;display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.85rem;flex-wrap:wrap;gap:1rem}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Job<span>Lens</span></div>
+  <div class="nav-links">
+    <a href="/login/" class="btn btn-ghost">Login</a>
+    <a href="/register/" class="btn btn-primary">Get Started Free</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">✦ AI-Powered Job Matching for India</div>
+  <h1>Find jobs that match<br>your <em>skills & resume</em></h1>
+  <p>Upload your resume once. Our AI searches LinkedIn, Naukri, Indeed & Internshala and shows you jobs ranked by how well you match — with direct apply links.</p>
+  <div class="hero-cta">
+    <a href="/register/" class="btn btn-primary btn-lg">Start for Free →</a>
+    <a href="/login/" class="btn btn-ghost btn-lg">Sign In</a>
+  </div>
+  <div class="stats">
+    <div class="stat-item"><div class="stat-num">4+</div><div class="stat-label">Job Portals</div></div>
+    <div class="stat-item"><div class="stat-num">AI</div><div class="stat-label">Match Scoring</div></div>
+    <div class="stat-item"><div class="stat-num">Free</div><div class="stat-label">To Start</div></div>
+    <div class="stat-item"><div class="stat-num">Fast</div><div class="stat-label">Groq Powered</div></div>
+  </div>
+</section>
+
+<div class="portals">
+  <div class="portal-badge"><div class="portal-dot" style="background:#0077b5"></div>LinkedIn</div>
+  <div class="portal-badge"><div class="portal-dot" style="background:#ef4444"></div>Naukri</div>
+  <div class="portal-badge"><div class="portal-dot" style="background:#16a34a"></div>Internshala</div>
+  <div class="portal-badge"><div class="portal-dot" style="background:#003A9B"></div>Indeed India</div>
+</div>
+
+<section class="features">
+  <div class="section-label">Why JobLens</div>
+  <div class="section-title">Everything you need to land the right job</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>AI Match Scoring</h3>
+      <p>Every job gets a match score based on your resume skills and experience. No more guessing if you're qualified.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>Search 4 Portals at Once</h3>
+      <p>LinkedIn, Naukri, Indeed and Internshala — all searched simultaneously. One search, maximum results.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✍️</div>
+      <h3>AI Cover Letters</h3>
+      <p>Generate a tailored cover letter for any job in seconds. Personalized to your skills and the role.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📄</div>
+      <h3>Resume Analysis</h3>
+      <p>Upload PDF, DOCX or TXT. AI extracts your skills, experience and suggests improvements automatically.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔖</div>
+      <h3>Save & Track Jobs</h3>
+      <p>Bookmark interesting jobs and track your applications. Never lose a good opportunity again.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Direct Apply Links</h3>
+      <p>Every job card has a direct link to apply. No redirects, no confusion — straight to the application.</p>
+    </div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="section-label">How it works</div>
+  <div class="section-title" style="margin-bottom:3rem">Three steps to your next job</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Upload Resume</h3>
+      <p>Upload your PDF or DOCX. AI extracts skills and experience automatically.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Search Jobs</h3>
+      <p>Enter a job title or skills. We search LinkedIn, Naukri, Indeed & Internshala instantly.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Apply with Confidence</h3>
+      <p>See your match score for each job, generate a cover letter, and apply directly.</p>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <h2>Ready to find your next job?</h2>
+  <p>Free to start. No credit card required. Built for Indian job seekers.</p>
+  <a href="/register/" class="btn btn-primary btn-lg">Create Free Account →</a>
+</section>
+
+<footer>
+  <div class="logo" style="font-size:1.1rem">Job<span style="color:var(--accent)">Lens</span></div>
+  <div>Built with ❤️ for Indian job seekers</div>
+</footer>
+</body>
+</html>

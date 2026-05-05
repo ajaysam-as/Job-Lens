@@ -1,0 +1,41 @@
+{% extends 'core/base.html' %}
+{% block title %}Profile — JobLens{% endblock %}
+{% block nav_profile %}active{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+<div style="max-width:600px">
+  <form method="POST" style="display:flex;flex-direction:column;gap:1.2rem">
+    {% csrf_token %}
+    <div class="card">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:1.2rem">Personal Info</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div><label style="display:block;font-size:.82rem;font-weight:500;margin-bottom:.4rem">First Name</label>
+        <input type="text" name="first_name" value="{{ request.user.first_name }}" style="width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif"></div>
+        <div><label style="display:block;font-size:.82rem;font-weight:500;margin-bottom:.4rem">Last Name</label>
+        <input type="text" name="last_name" value="{{ request.user.last_name }}" style="width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif"></div>
+      </div>
+      <div style="margin-top:1rem"><label style="display:block;font-size:.82rem;font-weight:500;margin-bottom:.4rem">Email</label>
+      <input type="email" name="email" value="{{ request.user.email }}" style="width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif"></div>
+    </div>
+    <div class="card">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:1.2rem">Career Info</div>
+      <div style="margin-bottom:1rem"><label style="display:block;font-size:.82rem;font-weight:500;margin-bottom:.4rem">Current/Desired Job Title</label>
+      <input type="text" name="job_title" value="{{ prof.job_title }}" placeholder="e.g. Software Engineer" style="width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div><label style="display:block;font-size:.82rem;font-weight:500;margin-bottom:.4rem">Location</label>
+        <input type="text" name="location" value="{{ prof.location }}" placeholder="Chennai" style="width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif"></div>
+        <div><label style="display:block;font-size:.82rem;font-weight:500;margin-bottom:.4rem">Years of Experience</label>
+        <input type="number" name="experience_years" value="{{ prof.experience_years }}" min="0" max="50" style="width:100%;padding:.75rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif"></div>
+      </div>
+    </div>
+    {% if skills %}
+    <div class="card">
+      <div style="font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:1rem">Your Skills (from resume)</div>
+      <div>{% for skill in skills %}<span style="display:inline-block;padding:.3rem .75rem;background:#eff6ff;color:var(--accent);border-radius:20px;font-size:.8rem;margin:.2rem;font-family:'DM Mono',monospace">{{ skill }}</span>{% endfor %}</div>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:.75rem">To update skills, <a href="/upload-resume/" style="color:var(--accent)">re-upload your resume</a></p>
+    </div>
+    {% endif %}
+    <button type="submit" class="btn btn-primary" style="align-self:flex-start;padding:.8rem 2rem">Save Profile →</button>
+  </form>
+</div>
+{% endblock %}

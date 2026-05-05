@@ -1,0 +1,86 @@
+{% extends 'core/base.html' %}
+{% block title %}Dashboard — JobLens{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block extra_css %}
+<style>
+.welcome{margin-bottom:2rem}
+.welcome h1{font-family:'DM Serif Display',serif;font-size:1.8rem;margin-bottom:.3rem}
+.welcome p{color:var(--muted);font-size:.95rem}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.3rem}
+.stat-card .num{font-family:'DM Serif Display',serif;font-size:2rem;color:var(--ink)}
+.stat-card .label{font-size:.8rem;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+@media(max-width:700px){.two-col{grid-template-columns:1fr}}
+.card-title{font-family:'DM Serif Display',serif;font-size:1.1rem;margin-bottom:1rem}
+.skill-tag{display:inline-block;padding:.3rem .75rem;background:#eff6ff;color:var(--accent);border-radius:20px;font-size:.8rem;font-family:'DM Mono',monospace;margin:.2rem}
+.action-btn{display:flex;align-items:center;gap:1rem;padding:1rem;background:var(--cream);border-radius:10px;text-decoration:none;color:var(--ink);margin-bottom:.75rem;border:1px solid var(--border);transition:all .2s}
+.action-btn:hover{border-color:var(--accent);background:#eff6ff}
+.action-icon{font-size:1.5rem}
+.action-text strong{display:block;font-weight:500;font-size:.95rem}
+.action-text span{font-size:.82rem;color:var(--muted)}
+.no-resume{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:2px dashed #bfdbfe;border-radius:12px;padding:2rem;text-align:center}
+.no-resume h3{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:.5rem}
+.no-resume p{color:var(--muted);font-size:.9rem;margin-bottom:1.2rem}
+</style>
+{% endblock %}
+{% block content %}
+<div class="welcome">
+  <h1>Welcome back, {{ request.user.first_name|default:request.user.username }} 👋</h1>
+  <p>Here's your job search overview</p>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="num">{{ saved_count }}</div>
+    <div class="label">Saved Jobs</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ skills|length }}</div>
+    <div class="label">Skills Found</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{{ profile.experience_years }}</div>
+    <div class="label">Years Experience</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">{% if has_resume %}✓{% else %}—{% endif %}</div>
+    <div class="label">Resume Uploaded</div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    {% if not has_resume %}
+    <div class="no-resume">
+      <div style="font-size:2.5rem;margin-bottom:.75rem">📄</div>
+      <h3>Upload your resume first</h3>
+      <p>Upload your resume so AI can extract your skills and match you to the right jobs</p>
+      <a href="/upload-resume/" class="btn btn-primary">Upload Resume →</a>
+    </div>
+    {% else %}
+    <div class="card">
+      <div class="card-title">Your Skills</div>
+      <div>{% for skill in skills %}<span class="skill-tag">{{ skill }}</span>{% empty %}<p style="color:var(--muted);font-size:.9rem">No skills extracted yet</p>{% endfor %}</div>
+      {% if profile.job_title %}<p style="margin-top:1rem;font-size:.85rem;color:var(--muted)">Current role: <strong>{{ profile.job_title }}</strong></p>{% endif %}
+    </div>
+    {% endif %}
+  </div>
+  <div class="card">
+    <div class="card-title">Quick Actions</div>
+    <a href="/upload-resume/" class="action-btn">
+      <div class="action-icon">📄</div>
+      <div class="action-text"><strong>Upload / Update Resume</strong><span>PDF, DOCX or TXT supported</span></div>
+    </a>
+    <a href="/find-jobs/" class="action-btn">
+      <div class="action-icon">🔍</div>
+      <div class="action-text"><strong>Find Matching Jobs</strong><span>Search LinkedIn, Naukri & more</span></div>
+    </a>
+    <a href="/saved-jobs/" class="action-btn">
+      <div class="action-icon">🔖</div>
+      <div class="action-text"><strong>View Saved Jobs</strong><span>{{ saved_count }} jobs saved</span></div>
+    </a>
+  </div>
+</div>
+{% endblock %}

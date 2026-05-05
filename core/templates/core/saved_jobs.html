@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+{% block title %}Saved Jobs — JobLens{% endblock %}
+{% block nav_saved %}active{% endblock %}
+{% block page_title %}Saved Jobs{% endblock %}
+{% block content %}
+<p style="color:var(--muted);margin-bottom:1.5rem">{{ jobs|length }} job{% if jobs|length != 1 %}s{% endif %} saved</p>
+{% if jobs %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1rem">
+{% for job in jobs %}
+<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem">
+  <div style="display:inline-block;padding:.2rem .7rem;border-radius:20px;font-size:.72rem;font-family:'DM Mono',monospace;font-weight:500;color:#fff;background:#6b7280;margin-bottom:.75rem">{{ job.source }}</div>
+  <div style="font-weight:600;font-size:1rem;margin-bottom:.25rem">{{ job.job_title }}</div>
+  <div style="color:var(--muted);font-size:.88rem;margin-bottom:.25rem">🏢 {{ job.company }}</div>
+  <div style="color:var(--muted);font-size:.82rem;margin-bottom:1rem">📍 {{ job.location }}</div>
+  {% if job.match_score %}<div style="font-size:.82rem;color:#16a34a;margin-bottom:.75rem;font-weight:500">Match: {{ job.match_score }}%</div>{% endif %}
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <a href="{{ job.apply_url }}" target="_blank" style="padding:.4rem 1rem;background:var(--accent);color:#fff;border-radius:6px;font-size:.82rem;text-decoration:none">Apply →</a>
+    <span style="font-size:.75rem;color:var(--muted)">{{ job.saved_at|date:"d M Y" }}</span>
+  </div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div style="text-align:center;padding:4rem;color:var(--muted)">
+  <div style="font-size:3rem;margin-bottom:1rem">🔖</div>
+  <p>No saved jobs yet.</p>
+  <a href="/find-jobs/" class="btn btn-primary" style="margin-top:1rem">Find Jobs →</a>
+</div>
+{% endif %}
+{% endblock %}
