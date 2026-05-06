@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ── Security ──────────────────────────────────────────────────────────────────
 SECRET_KEY    = os.environ.get("SECRET_KEY", "change-me-in-production-use-a-long-random-string")
-DEBUG         = os.environ.get("DEBUG", "False") == "True"
+DEBUG = os.environ.get("DEBUG", "True") == "True"
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 # ── Apps ──────────────────────────────────────────────────────────────────────
