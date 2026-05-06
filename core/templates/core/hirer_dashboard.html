@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Hirer Dashboard | JobLens{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+<div class="container">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────────── -->
+  <div class="dash-header">
+    <div>
+      <h1>👋 Welcome, {{ request.user.get_full_name|default:request.user.username }}</h1>
+      <p class="dash-sub">Manage your job postings and track candidate activity.</p>
+    </div>
+    <a href="{% url 'post_job' %}" class="btn-post-job">+ Post a New Job</a>
+  </div>
+
+  <!-- ── Stats Strip ─────────────────────────────────────────────────────────── -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-icon">📋</div>
+      <div class="stat-body">
+        <div class="stat-number">{{ postings.count }}</div>
+        <div class="stat-label">Total Postings</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--green">
+      <div class="stat-icon">✅</div>
+      <div class="stat-body">
+        <div class="stat-number">{{ active_count }}</div>
+        <div class="stat-label">Active Now</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--blue">
+      <div class="stat-icon">👁️</div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_views }}</div>
+        <div class="stat-label">Total Views</div>
+      </div>
+    </div>
+    <div class="stat-card stat-card--orange">
+      <div class="stat-icon">📬</div>
+      <div class="stat-body">
+        <div class="stat-number">{{ total_applications }}</div>
+        <div class="stat-label">Applications</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Postings Table ──────────────────────────────────────────────────────── -->
+  <div class="postings-section">
+    <div class="section-header">
+      <h2>Your Job Postings</h2>
+      <a href="{% url 'post_job' %}" class="btn-new-sm">+ New Posting</a>
+    </div>
+
+    {% if postings %}
+    <div class="postings-list">
+      {% for posting in postings %}
+      <div class="posting-card posting-status--{{ posting.status }}">
+
+        <!-- Status dot + title row -->
+        <div class="posting-top">
+          <div class="posting-title-row">
+            <span class="status-dot status-dot--{{ posting.status }}" title="{{ posting.get_status_display }}"></span>
+            <h3 class="posting-title">{{ posting.title }}</h3>
+            <span class="status-badge status-badge--{{ posting.status }}">
+              {% if posting.status == "active" %}✅ Active
+              {% elif posting.status == "pending_payment" %}⏳ Pending Payment
+              {% elif posting.status == "expired" %}❌ Expired
+              {% else %}⏸ Paused{% endif %}
+            </span>
+          </div>
+
+          <div class="posting-meta">
+            <span>🏢 {{ posting.company_name }}</span>
+            <span>📍 {{ posting.location }}</span>
+            <span>💼 {{ posting.get_job_type_display }}</span>
+            {% if posting.salary_min or posting.salary_max %}
+            <span>💰 {{ posting.salary_display }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="posting-stats">
+          <div class="pstat">
+            <span class="pstat-num">{{ posting.views }}</span>
+            <span class="pstat-label">Views</span>
+          </div>
+          <div class="pstat">
+            <span class="pstat-num">{{ posting.applications }}</span>
+            <span class="pstat-label">Applications</span>
+          </div>
+          <div class="pstat">
+            <span class="pstat-num">
+              {% if posting.expires_at %}
+                {% now "Y-m-d" as today %}
+                {{ posting.expires_at|date:"d M Y" }}
+              {% else %}—{% endif %}
+            </span>
+            <span class="pstat-label">Expires</span>
+          </div>
+          <div class="pstat">
+            <span class="pstat-num">{{ posting.created_at|date:"d M Y" }}</span>
+            <span class="pstat-label">Posted</span>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="posting-actions">
+          {% if posting.status == "pending_payment" %}
+            <a href="{% url 'initiate_payment' posting.id %}" class="action-btn action-btn--primary">
+              💳 Complete Payment
+            </a>
+          {% endif %}
+          {% if posting.status == "active" %}
+            <span class="action-live-badge">🟢 Live on JobLens</span>
+          {% endif %}
+          {% if posting.status == "expired" %}
+            <a href="{% url 'initiate_payment' posting.id %}" class="action-btn action-btn--renew">
+              🔄 Renew for ₹999
+            </a>
+          {% endif %}
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h3>No job postings yet</h3>
+      <p>Post your first job and start reaching thousands of job seekers on JobLens.</p>
+      <a href="{% url 'post_job' %}" class="btn-post-job" style="margin-top:12px; display:inline-block;">
+        + Post Your First Job
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ── Tips Card ───────────────────────────────────────────────────────────── -->
+  <div class="tips-card">
+    <div class="tips-icon">💡</div>
+    <div>
+      <h4>Tips for more applications</h4>
+      <ul class="tips-list">
+        <li>Add a salary range — postings with salary get <strong>40% more</strong> clicks.</li>
+        <li>List specific skills — our AI matches you with relevant candidates automatically.</li>
+        <li>Keep "How to Apply" short and direct — email or WhatsApp works best.</li>
+      </ul>
+    </div>
+  </div>
+
+</div><!-- /.container -->
+</div><!-- /.dashboard-page -->
+
+<style>
+.dashboard-page { background: #f4f6fb; min-height: 100vh; padding: 40px 0 60px; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+/* ── Header ── */
+.dash-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 30px; }
+.dash-header h1 { margin: 0 0 6px; font-size: 1.7rem; color: #1a1a2e; }
+.dash-sub { margin: 0; color: #777; font-size: .93rem; }
+.btn-post-job {
+  background: linear-gradient(135deg, #FF6B35, #e55a25);
+  color: #fff; text-decoration: none; border-radius: 10px;
+  padding: 12px 24px; font-size: .9rem; font-weight: 700;
+  box-shadow: 0 4px 16px rgba(255,107,53,.3);
+  transition: transform .15s, box-shadow .2s;
+  white-space: nowrap;
+}
+.btn-post-job:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,107,53,.4); color: #fff; }
+
+/* ── Stats ── */
+.stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+.stat-card {
+  background: #fff; border: 1px solid #e8ecf2; border-radius: 14px;
+  padding: 20px 22px; display: flex; align-items: center; gap: 14px;
+  border-left: 4px solid #dce0ea;
+}
+.stat-card--green  { border-left-color: #27ae60; }
+.stat-card--blue   { border-left-color: #2980b9; }
+.stat-card--orange { border-left-color: #FF6B35; }
+.stat-icon { font-size: 1.8rem; }
+.stat-number { font-size: 1.9rem; font-weight: 800; color: #1a1a2e; line-height: 1; }
+.stat-label  { font-size: .8rem; color: #888; margin-top: 3px; }
+
+/* ── Section header ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-header h2 { margin: 0; font-size: 1.2rem; color: #1a1a2e; }
+.btn-new-sm {
+  background: #fff; color: #FF6B35; border: 1.5px solid #FF6B35;
+  border-radius: 8px; padding: 8px 18px; font-size: .85rem;
+  font-weight: 700; text-decoration: none; transition: all .2s;
+}
+.btn-new-sm:hover { background: #FF6B35; color: #fff; }
+
+/* ── Posting cards ── */
+.postings-list { display: flex; flex-direction: column; gap: 14px; }
+.posting-card {
+  background: #fff; border: 1px solid #e8ecf2; border-radius: 14px;
+  padding: 22px 24px; border-left: 4px solid #dce0ea;
+}
+.posting-status--active         { border-left-color: #27ae60; }
+.posting-status--pending_payment { border-left-color: #f39c12; }
+.posting-status--expired        { border-left-color: #e74c3c; }
+.posting-status--paused         { border-left-color: #95a5a6; }
+
+.posting-top { margin-bottom: 14px; }
+.posting-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.status-dot--active          { background: #27ae60; box-shadow: 0 0 0 3px rgba(39,174,96,.2); }
+.status-dot--pending_payment { background: #f39c12; box-shadow: 0 0 0 3px rgba(243,156,18,.2); }
+.status-dot--expired         { background: #e74c3c; }
+.status-dot--paused          { background: #95a5a6; }
+.posting-title { margin: 0; font-size: 1.05rem; font-weight: 700; color: #1a1a2e; }
+.status-badge { font-size: .75rem; font-weight: 700; border-radius: 20px; padding: 3px 12px; }
+.status-badge--active          { background: #d4edda; color: #155724; }
+.status-badge--pending_payment { background: #fff3cd; color: #856404; }
+.status-badge--expired         { background: #f8d7da; color: #721c24; }
+.status-badge--paused          { background: #e2e3e5; color: #383d41; }
+
+.posting-meta { display: flex; gap: 14px; font-size: .83rem; color: #777; flex-wrap: wrap; }
+
+/* ── Posting stats ── */
+.posting-stats {
+  display: flex; gap: 0; border: 1px solid #f0f2f8;
+  border-radius: 10px; overflow: hidden; margin-bottom: 14px;
+}
+.pstat {
+  flex: 1; padding: 12px; text-align: center;
+  border-right: 1px solid #f0f2f8; background: #fafbfd;
+}
+.pstat:last-child { border-right: none; }
+.pstat-num   { display: block; font-size: 1.05rem; font-weight: 700; color: #1a1a2e; }
+.pstat-label { display: block; font-size: .72rem; color: #aaa; margin-top: 2px; }
+
+/* ── Actions ── */
+.posting-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.action-btn {
+  padding: 9px 20px; border-radius: 8px; font-size: .85rem;
+  font-weight: 700; text-decoration: none; transition: all .2s; cursor: pointer; border: none;
+}
+.action-btn--primary { background: #FF6B35; color: #fff; }
+.action-btn--primary:hover { background: #e55a25; color: #fff; }
+.action-btn--renew { background: #2980b9; color: #fff; }
+.action-btn--renew:hover { background: #1f6fa0; color: #fff; }
+.action-live-badge { font-size: .83rem; font-weight: 700; color: #27ae60; background: #d4edda; border-radius: 20px; padding: 6px 14px; }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 60px 20px; background: #fff; border: 1px solid #e8ecf2; border-radius: 14px; }
+.empty-icon { font-size: 3rem; margin-bottom: 14px; }
+.empty-state h3 { margin: 0 0 8px; font-size: 1.3rem; color: #333; }
+.empty-state p { color: #777; margin: 0; }
+
+/* ── Tips ── */
+.tips-card {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: #fff8f0; border: 1px solid #ffe0c7; border-radius: 14px;
+  padding: 20px 24px; margin-top: 24px;
+}
+.tips-icon { font-size: 1.8rem; }
+.tips-card h4 { margin: 0 0 10px; font-size: .95rem; color: #e65100; }
+.tips-list { margin: 0; padding-left: 18px; font-size: .85rem; color: #666; line-height: 1.7; }
+
+@media (max-width: 700px) {
+  .stats-strip { grid-template-columns: 1fr 1fr; }
+  .posting-stats { display: grid; grid-template-columns: 1fr 1fr; }
+  .pstat { border-right: none; border-bottom: 1px solid #f0f2f8; }
+}
+@media (max-width: 480px) {
+  .stats-strip { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}

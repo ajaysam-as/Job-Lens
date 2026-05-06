@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Post a Job | JobLens – Hire Top Talent in India{% endblock %}
+
+{% block content %}
+<div class="post-job-page">
+  <div class="container">
+
+    <!-- ── Page Header ──────────────────────────────────────────────────────── -->
+    <div class="page-header">
+      <div class="header-left">
+        <span class="header-badge">🏢 For Hirers</span>
+        <h1>Post a Job</h1>
+        <p>Fill in the details below. Your listing goes live <strong>instantly</strong> after a one-time payment of <strong>₹999</strong>.</p>
+      </div>
+      <div class="header-right">
+        <div class="price-pill">
+          <span class="price-amount">₹999</span>
+          <span class="price-label">one-time · 30 days live</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Messages ─────────────────────────────────────────────────────────── -->
+    {% if messages %}
+    <div class="messages-wrap">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ── Form ─────────────────────────────────────────────────────────────── -->
+    <form method="post" action="{% url 'post_job' %}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+
+      <div class="form-layout">
+
+        <!-- ── LEFT COLUMN ──────────────────────────────────────────────────── -->
+        <div class="form-col">
+
+          <!-- Section: Job Basics -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">📋</span> Job Basics
+            </div>
+
+            <div class="field-group">
+              <label for="title" class="field-label">Job Title <span class="req">*</span></label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                value="{{ post.title|default:'' }}"
+                class="field-input"
+                placeholder="e.g. Senior Python Developer, Sales Executive"
+                required
+              />
+              <span class="field-hint">Be specific — "React Developer" gets more clicks than "Developer"</span>
+            </div>
+
+            <div class="field-row-2">
+              <div class="field-group">
+                <label for="company_name" class="field-label">Company Name <span class="req">*</span></label>
+                <input
+                  type="text"
+                  id="company_name"
+                  name="company_name"
+                  value="{{ post.company_name|default:'' }}"
+                  class="field-input"
+                  placeholder="Your company name"
+                  required
+                />
+              </div>
+              <div class="field-group">
+                <label for="location" class="field-label">Location <span class="req">*</span></label>
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value="{{ post.location|default:'' }}"
+                  class="field-input"
+                  placeholder="e.g. Bangalore / Remote / Pan India"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="field-row-2">
+              <div class="field-group">
+                <label for="job_type" class="field-label">Job Type</label>
+                <select id="job_type" name="job_type" class="field-select">
+                  <option value="full_time"  {% if post.job_type == "full_time"  %}selected{% endif %}>Full Time</option>
+                  <option value="part_time"  {% if post.job_type == "part_time"  %}selected{% endif %}>Part Time</option>
+                  <option value="internship" {% if post.job_type == "internship" %}selected{% endif %}>Internship</option>
+                  <option value="contract"   {% if post.job_type == "contract"   %}selected{% endif %}>Contract / Freelance</option>
+                  <option value="remote"     {% if post.job_type == "remote"     %}selected{% endif %}>Remote</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label for="experience_required" class="field-label">Experience</label>
+                <select id="experience_required" name="experience_required" class="field-select">
+                  <option value="any"     {% if post.experience_required == "any"    %}selected{% endif %}>Any</option>
+                  <option value="fresher" {% if post.experience_required == "fresher"%}selected{% endif %}>Fresher (0–1 yr)</option>
+                  <option value="junior"  {% if post.experience_required == "junior" %}selected{% endif %}>Junior (1–3 yrs)</option>
+                  <option value="mid"     {% if post.experience_required == "mid"    %}selected{% endif %}>Mid-level (3–6 yrs)</option>
+                  <option value="senior"  {% if post.experience_required == "senior" %}selected{% endif %}>Senior (6+ yrs)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Salary -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">💰</span> Salary <span class="optional-tag">optional</span>
+            </div>
+            <p class="section-sub">Jobs with salary info get <strong>40% more</strong> applications.</p>
+
+            <div class="field-row-2">
+              <div class="field-group">
+                <label for="salary_min" class="field-label">Minimum (₹/month)</label>
+                <input
+                  type="number"
+                  id="salary_min"
+                  name="salary_min"
+                  value="{{ post.salary_min|default:'' }}"
+                  class="field-input"
+                  placeholder="e.g. 30000"
+                  min="0"
+                />
+              </div>
+              <div class="field-group">
+                <label for="salary_max" class="field-label">Maximum (₹/month)</label>
+                <input
+                  type="number"
+                  id="salary_max"
+                  name="salary_max"
+                  value="{{ post.salary_max|default:'' }}"
+                  class="field-input"
+                  placeholder="e.g. 60000"
+                  min="0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Section: Skills -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">🛠️</span> Required Skills <span class="req">*</span>
+            </div>
+
+            <div class="field-group">
+              <label for="skills_input" class="field-label">Type skills and press Enter or comma</label>
+              <input
+                type="text"
+                id="skills_input"
+                class="field-input"
+                placeholder="e.g. Python, Django, PostgreSQL..."
+              />
+              <!-- Hidden field stores comma-separated value -->
+              <input
+                type="hidden"
+                id="skills_required"
+                name="skills_required"
+                value="{{ post.skills_required|default:'' }}"
+              />
+              <div id="skills-tags" class="skills-tags-wrap"></div>
+              <span class="field-hint">Add at least 3 skills. Our AI uses these to match candidates.</span>
+            </div>
+          </div>
+
+        </div><!-- /.form-col -->
+
+        <!-- ── RIGHT COLUMN ─────────────────────────────────────────────────── -->
+        <div class="form-col">
+
+          <!-- Section: Description -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">📝</span> Job Description <span class="req">*</span>
+            </div>
+
+            <div class="field-group">
+              <!-- Quick-fill toolbar -->
+              <div class="desc-toolbar">
+                <button type="button" class="toolbar-btn" onclick="insertTemplate('responsibilities')">+ Responsibilities</button>
+                <button type="button" class="toolbar-btn" onclick="insertTemplate('requirements')">+ Requirements</button>
+                <button type="button" class="toolbar-btn" onclick="insertTemplate('benefits')">+ Benefits</button>
+              </div>
+              <textarea
+                id="description"
+                name="description"
+                rows="12"
+                class="field-textarea"
+                placeholder="Describe the role, responsibilities, what you're looking for, and what you offer…"
+                required
+              >{{ post.description|default:'' }}</textarea>
+              <div class="char-count"><span id="desc-count">0</span> characters</div>
+            </div>
+          </div>
+
+          <!-- Section: How to Apply -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">📬</span> How to Apply <span class="req">*</span>
+            </div>
+            <div class="field-group">
+              <textarea
+                id="how_to_apply"
+                name="how_to_apply"
+                rows="4"
+                class="field-textarea"
+                placeholder="e.g. Send your resume to hr@yourcompany.com&#10;Or apply at: https://yourcompany.com/careers&#10;WhatsApp: +91 9876543210"
+                required
+              >{{ post.how_to_apply|default:'' }}</textarea>
+            </div>
+          </div>
+
+          <!-- Section: Company logo (optional) -->
+          <div class="form-section">
+            <div class="section-title">
+              <span class="section-icon">🖼️</span> Company Logo <span class="optional-tag">optional</span>
+            </div>
+            <div class="field-group">
+              <div class="logo-upload-area" id="logo-drop-area">
+                <input type="file" id="company_logo" name="company_logo" accept="image/*" class="logo-file-input" />
+                <label for="company_logo" class="logo-upload-label">
+                  <span class="upload-icon">☁️</span>
+                  <span class="upload-text">Click to upload or drag &amp; drop</span>
+                  <span class="upload-hint">PNG, JPG up to 2MB</span>
+                </label>
+                <div id="logo-preview" class="logo-preview" style="display:none">
+                  <img id="logo-img" src="" alt="Logo preview" />
+                  <button type="button" id="logo-remove" class="logo-remove-btn">✕ Remove</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /.form-col -->
+      </div><!-- /.form-layout -->
+
+      <!-- ── Submit Bar ────────────────────────────────────────────────────── -->
+      <div class="submit-bar">
+        <div class="submit-info">
+          <span>🔒 Secure checkout via Razorpay after review</span>
+          <span>·</span>
+          <span>₹999 · 30-day listing</span>
+        </div>
+        <button type="submit" class="submit-btn" id="submit-btn">
+          Continue to Payment →
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ── Templates for description quick-fill ─────────────────────────────────── -->
+<script>
+const TEMPLATES = {
+  responsibilities: `\n\nKey Responsibilities:\n• \n• \n• \n`,
+  requirements:     `\n\nRequirements:\n• \n• \n• \n`,
+  benefits:         `\n\nWhat We Offer:\n• Competitive salary\n• Flexible working hours\n• Learning & development budget\n• `,
+};
+
+function insertTemplate(key) {
+  const ta = document.getElementById("description");
+  ta.value += TEMPLATES[key];
+  ta.focus();
+  updateCharCount();
+}
+
+function updateCharCount() {
+  document.getElementById("desc-count").textContent =
+    document.getElementById("description").value.length;
+}
+document.getElementById("description").addEventListener("input", updateCharCount);
+updateCharCount();
+
+// ── Skills tag input ──────────────────────────────────────────────────────────
+const skillsInput  = document.getElementById("skills_input");
+const skillsHidden = document.getElementById("skills_required");
+const tagsWrap     = document.getElementById("skills-tags");
+
+let skills = skillsHidden.value ? skillsHidden.value.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+function renderTags() {
+  tagsWrap.innerHTML = "";
+  skills.forEach((s, i) => {
+    const tag = document.createElement("span");
+    tag.className = "skill-tag";
+    tag.innerHTML = `${s} <button type="button" data-i="${i}" class="skill-remove">✕</button>`;
+    tagsWrap.appendChild(tag);
+  });
+  skillsHidden.value = skills.join(", ");
+  tagsWrap.querySelectorAll(".skill-remove").forEach(btn => {
+    btn.addEventListener("click", () => { skills.splice(+btn.dataset.i, 1); renderTags(); });
+  });
+}
+
+function addSkill(val) {
+  const clean = val.trim().replace(/,+$/, "");
+  if (clean && !skills.includes(clean)) { skills.push(clean); renderTags(); }
+  skillsInput.value = "";
+}
+
+skillsInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addSkill(skillsInput.value); }
+  if (e.key === "Backspace" && !skillsInput.value.length && skills.length) {
+    skills.pop(); renderTags();
+  }
+});
+skillsInput.addEventListener("blur", () => { if (skillsInput.value.trim()) addSkill(skillsInput.value); });
+renderTags();
+
+// ── Logo preview ──────────────────────────────────────────────────────────────
+document.getElementById("company_logo").addEventListener("change", function() {
+  if (this.files && this.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById("logo-img").src = e.target.result;
+      document.getElementById("logo-preview").style.display = "flex";
+      document.querySelector(".logo-upload-label").style.display = "none";
+    };
+    reader.readAsDataURL(this.files[0]);
+  }
+});
+document.getElementById("logo-remove").addEventListener("click", () => {
+  document.getElementById("company_logo").value = "";
+  document.getElementById("logo-preview").style.display = "none";
+  document.querySelector(".logo-upload-label").style.display = "flex";
+});
+</script>
+
+<style>
+.post-job-page { background: #f4f6fb; min-height: 100vh; padding: 40px 0 80px; }
+.container { max-width: 1160px; margin: 0 auto; padding: 0 20px; }
+
+/* ── Header ── */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-bottom: 32px; }
+.header-badge { display: inline-block; background: #fff3e0; color: #e65100; border-radius: 20px; padding: 4px 14px; font-size: .8rem; font-weight: 700; margin-bottom: 10px; }
+.page-header h1 { margin: 0 0 8px; font-size: clamp(1.5rem, 3vw, 2rem); color: #1a1a2e; }
+.page-header p { margin: 0; color: #666; font-size: .95rem; }
+.price-pill { background: linear-gradient(135deg, #FF6B35, #e55a25); color: #fff; border-radius: 16px; padding: 16px 24px; text-align: center; }
+.price-amount { display: block; font-size: 2rem; font-weight: 800; }
+.price-label { font-size: .78rem; opacity: .85; }
+
+/* ── Messages ── */
+.messages-wrap { margin-bottom: 20px; }
+.alert { padding: 12px 18px; border-radius: 10px; margin-bottom: 10px; font-size: .9rem; }
+.alert-error { background: #fde8e8; color: #c0392b; border: 1px solid #f5c6cb; }
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+
+/* ── Layout ── */
+.form-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+/* ── Sections ── */
+.form-section { background: #fff; border: 1px solid #e8ecf2; border-radius: 14px; padding: 24px; margin-bottom: 20px; }
+.section-title { font-size: 1rem; font-weight: 700; color: #1a1a2e; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.section-icon { font-size: 1.1rem; }
+.section-sub { font-size: .85rem; color: #777; margin: -10px 0 14px; }
+.optional-tag { font-size: .72rem; background: #f0f2f8; color: #888; border-radius: 10px; padding: 2px 9px; font-weight: 600; }
+.req { color: #e74c3c; }
+
+/* ── Fields ── */
+.field-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.field-group:last-child { margin-bottom: 0; }
+.field-label { font-size: .87rem; font-weight: 600; color: #333; }
+.field-hint { font-size: .78rem; color: #999; }
+.field-input, .field-select, .field-textarea {
+  width: 100%;
+  border: 1.5px solid #e0e4ec;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: .92rem;
+  color: #222;
+  background: #fff;
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+.field-input:focus, .field-select:focus, .field-textarea:focus {
+  border-color: #FF6B35;
+  box-shadow: 0 0 0 3px rgba(255,107,53,.12);
+}
+.field-textarea { resize: vertical; min-height: 120px; }
+.field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.char-count { font-size: .75rem; color: #aaa; text-align: right; margin-top: -2px; }
+
+/* ── Description toolbar ── */
+.desc-toolbar { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.toolbar-btn { background: #f0f2f8; border: 1px solid #dce0ea; border-radius: 7px; padding: 5px 12px; font-size: .8rem; font-weight: 600; color: #555; cursor: pointer; }
+.toolbar-btn:hover { background: #e5e9f5; color: #FF6B35; }
+
+/* ── Skills tags ── */
+.skills-tags-wrap { display: flex; flex-wrap: wrap; gap: 8px; min-height: 10px; }
+.skill-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff3e0; color: #e65100;
+  border: 1px solid #ffcc99; border-radius: 20px;
+  padding: 4px 12px; font-size: .82rem; font-weight: 600;
+}
+.skill-remove { background: none; border: none; cursor: pointer; color: #e65100; font-size: .75rem; padding: 0; line-height: 1; }
+
+/* ── Logo upload ── */
+.logo-upload-area { border: 2px dashed #dce0ea; border-radius: 12px; overflow: hidden; }
+.logo-file-input { display: none; }
+.logo-upload-label { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 28px; cursor: pointer; background: #fafbfd; transition: background .2s; }
+.logo-upload-label:hover { background: #f0f2f8; }
+.upload-icon { font-size: 1.8rem; }
+.upload-text { font-size: .9rem; font-weight: 600; color: #444; }
+.upload-hint { font-size: .78rem; color: #aaa; }
+.logo-preview { display: flex; align-items: center; gap: 14px; padding: 16px; }
+.logo-preview img { width: 72px; height: 72px; object-fit: contain; border-radius: 10px; border: 1px solid #e8ecf2; }
+.logo-remove-btn { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 6px 12px; font-size: .8rem; color: #999; cursor: pointer; }
+
+/* ── Submit bar ── */
+.submit-bar {
+  background: #fff;
+  border: 1px solid #e8ecf2;
+  border-radius: 14px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 4px;
+}
+.submit-info { display: flex; gap: 10px; align-items: center; font-size: .85rem; color: #888; flex-wrap: wrap; }
+.submit-btn {
+  background: linear-gradient(135deg, #FF6B35, #e55a25);
+  color: #fff; border: none; border-radius: 10px;
+  padding: 14px 36px; font-size: 1rem; font-weight: 800;
+  cursor: pointer; transition: transform .15s, box-shadow .2s;
+  box-shadow: 0 4px 18px rgba(255,107,53,.35);
+}
+.submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(255,107,53,.4); }
+
+@media (max-width: 768px) {
+  .form-layout { grid-template-columns: 1fr; }
+  .field-row-2 { grid-template-columns: 1fr; }
+  .page-header { flex-direction: column; }
+  .submit-bar { flex-direction: column; align-items: stretch; }
+  .submit-btn { text-align: center; }
+}
+</style>
+{% endblock %}

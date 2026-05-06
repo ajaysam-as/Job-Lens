@@ -12,15 +12,15 @@ import urllib.parse
 
 MODEL = "llama-3.3-70b-versatile"
 
-# ── Government & Specialised RSS Feeds (FREE, no scraping needed) ─────────────
-GOVT_RSS_FEEDS = [
-    {"url": "https://www.sarkariresult.com/feed/",         "source": "SarkariResult", "category": "government"},
-    {"url": "https://www.govtjobsblog.in/feed/",           "source": "GovtJobsBlog",  "category": "government"},
-    {"url": "https://www.freejobalert.com/feed/",          "source": "FreeJobAlert",  "category": "government"},
-    {"url": "https://ibps.in/feed/",                       "source": "IBPS",          "category": "banking"},
-    {"url": "https://www.sbi.co.in/web/careers/rss",       "source": "SBI Careers",   "category": "banking"},
+# ── Government & Specialised RSS Feeds (list — used by find_jobs scraper) ─────
+GOVT_RSS_FEEDS_LIST = [
+    {"url": "https://www.sarkariresult.com/feed/",                "source": "SarkariResult",   "category": "government"},
+    {"url": "https://www.govtjobsblog.in/feed/",                  "source": "GovtJobsBlog",    "category": "government"},
+    {"url": "https://www.freejobalert.com/feed/",                 "source": "FreeJobAlert",    "category": "government"},
+    {"url": "https://ibps.in/feed/",                              "source": "IBPS",            "category": "banking"},
+    {"url": "https://www.sbi.co.in/web/careers/rss",              "source": "SBI Careers",     "category": "banking"},
     {"url": "https://indianrailways.gov.in/railwayboard/rss.jsp", "source": "Indian Railways", "category": "railways"},
-    {"url": "https://www.ncs.gov.in/jobseeker/rss",        "source": "NCS Portal",    "category": "government"},
+    {"url": "https://www.ncs.gov.in/jobseeker/rss",               "source": "NCS Portal",      "category": "government"},
 ]
 
 BLUECOLLAR_SEARCHES = [
@@ -34,6 +34,42 @@ BLUECOLLAR_SEARCHES = [
     {"query": "plumber jobs india",        "category": "bluecollar"},
 ]
 
+# ── Govt Jobs page — RSS feed dict (used by the /govt-jobs/ page view) ────────
+GOVT_RSS_FEEDS_PAGE = {
+    "sarkari_result":  {"url": "https://www.sarkariresult.com/feed/",                                    "label": "Sarkari Result",  "icon": "🏛️"},
+    "employment_news": {"url": "https://www.employmentnews.gov.in/rss/rss.xml",                          "label": "Employment News", "icon": "📰"},
+    "upsc":            {"url": "https://www.upsc.gov.in/rss.xml",                                        "label": "UPSC",            "icon": "🎓"},
+    "ssc":             {"url": "https://ssc.nic.in/SSCFileServer/PortalManagement/UploadedFiles/rss.xml","label": "SSC",             "icon": "📋"},
+    "railway_rrb":     {"url": "https://rrbcdg.gov.in/rss/recruitment.xml",                              "label": "Railway (RRB)",   "icon": "🚂"},
+    "banking_ibps":    {"url": "https://www.ibps.in/rss.xml",                                            "label": "IBPS / Banking",  "icon": "🏦"},
+    "naukri_govt":     {"url": "https://www.naukri.com/rss/jobs/government-jobs",                        "label": "Naukri Govt",     "icon": "💼"},
+}
+
+CATEGORY_META = {
+    "central":  {"label": "Central Govt",  "icon": "🇮🇳", "color": "#FF6B35"},
+    "railway":  {"label": "Railways",      "icon": "🚂",  "color": "#4ECDC4"},
+    "banking":  {"label": "Banking / PSU", "icon": "🏦",  "color": "#45B7D1"},
+    "defence":  {"label": "Defence",       "icon": "🪖",  "color": "#96CEB4"},
+    "teaching": {"label": "Teaching",      "icon": "📚",  "color": "#FFEAA7"},
+    "police":   {"label": "Police / Para", "icon": "👮",  "color": "#DDA0DD"},
+    "state":    {"label": "State Govt",    "icon": "🏢",  "color": "#98D8C8"},
+    "all":      {"label": "All",           "icon": "🔍",  "color": "#6C757D"},
+}
+
+CATEGORY_KEYWORDS = {
+    "railway":  ["railway", "rrb", "rrb-ntpc", "loco pilot", "station master"],
+    "banking":  ["bank", "ibps", "sbi", "rbi", "nabard", "psu"],
+    "defence":  ["army", "navy", "air force", "defence", "crpf", "bsf", "cisf", "nda", "cds"],
+    "teaching": ["teacher", "tgt", "pgt", "lecturer", "professor", "tet", "ctet"],
+    "police":   ["police", "constable", "si", "sub-inspector", "paramilitary"],
+    "state":    ["state", "state psc", "state board", "municipal", "panchayat"],
+    "central":  ["upsc", "ssc", "ias", "ips", "central", "ministry", "government of india"],
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
 
 def get_groq():
     from groq import Groq
@@ -67,7 +103,16 @@ Resume:{resume_text[:3000]}"""
     return json.loads(raw)
 
 
-# ── Job scrapers (15 results each) ────────────────────────────────────────────
+def _categorise_govt_job(title: str, summary: str) -> str:
+    """Classify a govt RSS entry into one of the CATEGORY_META keys."""
+    text = (title + " " + summary).lower()
+    for cat, keywords in CATEGORY_KEYWORDS.items():
+        if any(kw in text for kw in keywords):
+            return cat
+    return "central"
+
+
+# ── Job scrapers ──────────────────────────────────────────────────────────────
 
 def search_linkedin_jobs(query, location="India", num=15):
     jobs = []
@@ -140,7 +185,7 @@ def search_naukri_jobs(query, location="India", num=15):
     jobs = []
     try:
         slug = query.lower().replace(" ", "-")
-        loc = location.lower().replace(" ", "-")
+        loc  = location.lower().replace(" ", "-")
         r = requests.get(f"https://www.naukri.com/{slug}-jobs-in-{loc}",
                          headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "en-US"}, timeout=8)
         soup = BeautifulSoup(r.text, "html.parser")
@@ -159,9 +204,9 @@ def search_naukri_jobs(query, location="India", num=15):
 
 
 def fetch_govt_rss_jobs(category_filter=None, max_per_feed=15):
-    """Fetch jobs from free government RSS feeds."""
+    """Used by find_jobs() to mix a few govt jobs into the main results."""
     all_jobs = []
-    for feed_info in GOVT_RSS_FEEDS:
+    for feed_info in GOVT_RSS_FEEDS_LIST:
         if category_filter and feed_info["category"] != category_filter:
             continue
         try:
@@ -183,18 +228,13 @@ def fetch_govt_rss_jobs(category_filter=None, max_per_feed=15):
 
 
 def fetch_bluecollar_jobs(query="", num=15):
-    """Fetch blue collar jobs from Naukri and Indeed."""
     all_jobs = []
     searches = [s for s in BLUECOLLAR_SEARCHES if not query or query.lower() in s["query"]] or BLUECOLLAR_SEARCHES[:3]
     for s in searches[:3]:
-        jobs = search_naukri_jobs(s["query"], "India", num=5)
-        for j in jobs:
-            j["category"] = s["category"]
-        all_jobs += jobs
-        jobs2 = search_indeed_jobs(s["query"], "India", num=5)
-        for j in jobs2:
-            j["category"] = s["category"]
-        all_jobs += jobs2
+        for j in search_naukri_jobs(s["query"], "India", num=5):
+            j["category"] = s["category"]; all_jobs.append(j)
+        for j in search_indeed_jobs(s["query"], "India", num=5):
+            j["category"] = s["category"]; all_jobs.append(j)
     return all_jobs[:num]
 
 
@@ -222,7 +262,9 @@ def ai_fallback_jobs(query, location):
         return []
 
 
-# ── Views ──────────────────────────────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# VIEWS
+# ─────────────────────────────────────────────────────────────────────────────
 
 def landing(request):
     if request.user.is_authenticated:
@@ -320,7 +362,7 @@ def find_jobs(request):
         query    = data.get('query', '')
         location = data.get('location', 'India')
         sources  = data.get('sources', ['LinkedIn', 'Indeed', 'Internshala', 'Naukri'])
-        category = data.get('category', 'all')   # all | government | banking | railways | bluecollar
+        category = data.get('category', 'all')
 
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         skills     = json.loads(profile.skills) if profile.skills else []
@@ -335,12 +377,10 @@ def find_jobs(request):
         elif category == 'bluecollar':
             all_jobs += fetch_bluecollar_jobs(query)
         else:
-            # White collar — scrape all sources
             if 'LinkedIn'    in sources: all_jobs += search_linkedin_jobs(query, location, num=15)
             if 'Indeed'      in sources: all_jobs += search_indeed_jobs(query, location, num=15)
             if 'Internshala' in sources: all_jobs += search_internshala_jobs(query, num=15)
             if 'Naukri'      in sources: all_jobs += search_naukri_jobs(query, location, num=15)
-            # Also add govt jobs in all view
             all_jobs += fetch_govt_rss_jobs(max_per_feed=5)
 
         if not all_jobs:
@@ -364,15 +404,51 @@ def find_jobs(request):
 
 
 @login_required
-@csrf_exempt
 def govt_jobs(request):
-    """Dedicated government jobs page."""
-    category = request.GET.get('category', 'all')
-    if category == 'all':
-        jobs = fetch_govt_rss_jobs()
-    else:
-        jobs = fetch_govt_rss_jobs(category_filter=category)
-    return render(request, 'core/govt_jobs.html', {'jobs': jobs, 'category': category})
+    """
+    Dedicated /govt-jobs/ page — aggregates RSS feeds with category filter + search.
+    Replaces the old simple govt_jobs view.
+    """
+    active_category = request.GET.get("category", "all")
+    query           = request.GET.get("q", "").strip().lower()
+    all_jobs        = []
+
+    for feed_meta in GOVT_RSS_FEEDS_PAGE.values():
+        try:
+            feed = feedparser.parse(feed_meta["url"])
+            for entry in feed.entries[:20]:
+                title    = getattr(entry, "title", "Untitled")
+                summary  = getattr(entry, "summary", "")
+                all_jobs.append({
+                    "title":       title,
+                    "summary":     summary[:200] + "…" if len(summary) > 200 else summary,
+                    "link":        getattr(entry, "link", "#"),
+                    "pub_date":    getattr(entry, "published", ""),
+                    "source":      feed_meta["label"],
+                    "source_icon": feed_meta["icon"],
+                    "category":    _categorise_govt_job(title, summary),
+                })
+        except:
+            pass
+
+    if active_category != "all":
+        all_jobs = [j for j in all_jobs if j["category"] == active_category]
+    if query:
+        all_jobs = [j for j in all_jobs if query in j["title"].lower() or query in j["summary"].lower()]
+
+    category_counts = {"all": len(all_jobs)}
+    for cat in CATEGORY_META:
+        if cat != "all":
+            category_counts[cat] = sum(1 for j in all_jobs if j["category"] == cat)
+
+    return render(request, "core/govt_jobs.html", {
+        "jobs":            all_jobs,
+        "categories":      CATEGORY_META,
+        "active_category": active_category,
+        "category_counts": category_counts,
+        "query":           query,
+        "total":           len(all_jobs),
+    })
 
 
 @login_required
@@ -404,10 +480,10 @@ def saved_jobs(request):
 @csrf_exempt
 def generate_cover_letter(request):
     if request.method == 'POST':
-        data      = json.loads(request.body)
+        data       = json.loads(request.body)
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
-        skills    = json.loads(profile.skills) if profile.skills else []
-        name      = request.user.get_full_name() or request.user.username
+        skills     = json.loads(profile.skills) if profile.skills else []
+        name       = request.user.get_full_name() or request.user.username
         text = ai_call(
             [{"role": "user", "content":
               f"Write a 3-paragraph professional cover letter for {name} "

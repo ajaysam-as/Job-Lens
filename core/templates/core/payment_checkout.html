@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Complete Payment | Post a Job – JobLens{% endblock %}
+
+{% block content %}
+<div class="checkout-page">
+  <div class="container">
+
+    <!-- Back link -->
+    <a href="{% url 'post_job' %}" class="back-link">← Edit Job Details</a>
+
+    <div class="checkout-layout">
+
+      <!-- ── LEFT: Order summary ─────────────────────────────────────────── -->
+      <div class="order-summary">
+        <div class="summary-card">
+          <div class="summary-header">
+            <span class="plan-badge">🚀 Hirer Plan</span>
+            <h2>Job Post Summary</h2>
+          </div>
+
+          <div class="job-preview">
+            <div class="job-icon">💼</div>
+            <div>
+              <h3 class="preview-title">{{ posting.title }}</h3>
+              <p class="preview-company">{{ posting.company_name }}</p>
+              <p class="preview-meta">📍 {{ posting.location }} &nbsp;·&nbsp; {{ posting.get_job_type_display }}</p>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <ul class="features-list">
+            <li>✅ Live for <strong>30 days</strong></li>
+            <li>✅ Visible to <strong>10,000+ job seekers</strong> on JobLens</li>
+            <li>✅ AI-powered candidate matching</li>
+            <li>✅ WhatsApp alerts when candidates apply</li>
+            <li>✅ Dashboard to track views &amp; applications</li>
+          </ul>
+
+          <hr class="divider" />
+
+          <div class="price-row">
+            <span>Job Posting (30 days)</span>
+            <span>₹999</span>
+          </div>
+          <div class="price-row price-row--gst">
+            <span>GST (0% – for now)</span>
+            <span>₹0</span>
+          </div>
+          <div class="price-row price-row--total">
+            <span>Total</span>
+            <span>₹999</span>
+          </div>
+        </div>
+
+        <div class="trust-badges">
+          <div class="trust-item">🔒 256-bit SSL</div>
+          <div class="trust-item">🛡️ Razorpay Secured</div>
+          <div class="trust-item">💳 UPI / Cards / NetBanking</div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: Pay button ───────────────────────────────────────────── -->
+      <div class="payment-panel">
+        <div class="payment-card">
+          <h2>Pay ₹999 to Go Live</h2>
+          <p class="payment-sub">
+            Your job will be activated <strong>instantly</strong> after payment.
+          </p>
+
+          <!-- Razorpay payment methods hint -->
+          <div class="payment-methods">
+            <img src="https://cdn.razorpay.com/logo.svg" alt="Razorpay" class="rzp-logo" />
+            <div class="method-icons">
+              <span title="UPI">🏦 UPI</span>
+              <span title="Cards">💳 Cards</span>
+              <span title="Net Banking">🌐 Netbanking</span>
+              <span title="Wallets">👛 Wallets</span>
+            </div>
+          </div>
+
+          <!-- Pay button (Razorpay JS fills in the modal) -->
+          <button id="rzp-pay-btn" class="pay-btn">
+            <span id="btn-text">Pay ₹999 Securely →</span>
+            <span id="btn-loader" style="display:none">Processing…</span>
+          </button>
+
+          <p class="cancel-note">
+            Changed your mind?
+            <a href="{% url 'post_job' %}">Go back &amp; edit</a>
+          </p>
+        </div>
+      </div>
+    </div><!-- /.checkout-layout -->
+  </div><!-- /.container -->
+</div>
+
+<!-- ── Razorpay JS ──────────────────────────────────────────────────────────── -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const options = {
+  key:         "{{ rzp_key }}",
+  amount:      {{ amount }},
+  currency:    "INR",
+  name:        "JobLens",
+  description: "Job Posting – {{ posting.title }}",
+  image:       "https://job-lens-production-b268.up.railway.app/static/img/logo.png",
+  order_id:    "{{ rzp_order_id }}",
+  prefill: {
+    name:    "{{ user_name }}",
+    email:   "{{ user_email }}",
+  },
+  theme: { color: "#FF6B35" },
+  modal: {
+    ondismiss: function() {
+      document.getElementById("btn-text").style.display = "inline";
+      document.getElementById("btn-loader").style.display = "none";
+      document.getElementById("rzp-pay-btn").disabled = false;
+    }
+  },
+  handler: function(response) {
+    // Submit payment IDs to Django for verification
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "{% url 'payment_callback' %}";
+
+    const csrf = document.createElement("input");
+    csrf.type  = "hidden";
+    csrf.name  = "csrfmiddlewaretoken";
+    csrf.value = "{{ csrf_token }}";
+    form.appendChild(csrf);
+
+    const fields = [
+      ["razorpay_order_id",   response.razorpay_order_id],
+      ["razorpay_payment_id", response.razorpay_payment_id],
+      ["razorpay_signature",  response.razorpay_signature],
+    ];
+    fields.forEach(([name, value]) => {
+      const inp = document.createElement("input");
+      inp.type  = "hidden";
+      inp.name  = name;
+      inp.value = value;
+      form.appendChild(inp);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+};
+
+const rzp = new Razorpay(options);
+rzp.on("payment.failed", function(resp) {
+  alert("Payment failed: " + resp.error.description + "\nPlease try again.");
+  document.getElementById("btn-text").style.display   = "inline";
+  document.getElementById("btn-loader").style.display = "none";
+  document.getElementById("rzp-pay-btn").disabled = false;
+});
+
+document.getElementById("rzp-pay-btn").addEventListener("click", function() {
+  this.disabled = true;
+  document.getElementById("btn-text").style.display   = "none";
+  document.getElementById("btn-loader").style.display = "inline";
+  rzp.open();
+});
+</script>
+
+<style>
+.checkout-page { background: #f4f6fb; min-height: 100vh; padding: 40px 0 60px; }
+.back-link { display: inline-block; color: #666; text-decoration: none; margin-bottom: 24px; font-size: .9rem; }
+.back-link:hover { color: #FF6B35; }
+
+.checkout-layout { display: grid; grid-template-columns: 1fr 420px; gap: 32px; align-items: start; }
+
+/* ── Summary ── */
+.summary-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8ecf2;
+  padding: 28px;
+}
+.summary-header { margin-bottom: 20px; }
+.plan-badge {
+  display: inline-block;
+  background: #fff3e0;
+  color: #e65100;
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: .8rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.summary-header h2 { margin: 0; font-size: 1.3rem; color: #1a1a2e; }
+
+.job-preview { display: flex; gap: 16px; align-items: flex-start; }
+.job-icon { font-size: 2rem; background: #f0f2f8; border-radius: 12px; width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.preview-title { margin: 0 0 4px; font-size: 1.1rem; font-weight: 700; color: #1a1a2e; }
+.preview-company { margin: 0 0 4px; font-weight: 600; color: #444; font-size: .9rem; }
+.preview-meta { margin: 0; font-size: .82rem; color: #888; }
+
+.divider { border: none; border-top: 1px solid #e8ecf2; margin: 20px 0; }
+
+.features-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.features-list li { font-size: .9rem; color: #444; }
+
+.price-row { display: flex; justify-content: space-between; font-size: .92rem; color: #666; margin-bottom: 8px; }
+.price-row--gst { color: #999; font-size: .85rem; }
+.price-row--total { font-size: 1.15rem; font-weight: 800; color: #1a1a2e; border-top: 2px solid #e8ecf2; padding-top: 12px; margin-top: 4px; }
+
+.trust-badges { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.trust-item { background: #fff; border: 1px solid #e8ecf2; border-radius: 8px; padding: 8px 14px; font-size: .8rem; color: #555; font-weight: 600; }
+
+/* ── Payment panel ── */
+.payment-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8ecf2;
+  padding: 32px 28px;
+  position: sticky;
+  top: 24px;
+}
+.payment-card h2 { margin: 0 0 8px; font-size: 1.4rem; color: #1a1a2e; }
+.payment-sub { color: #666; font-size: .9rem; margin-bottom: 24px; }
+
+.payment-methods { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; background: #f8f9fc; border-radius: 10px; padding: 14px 16px; }
+.rzp-logo { height: 22px; }
+.method-icons { display: flex; gap: 10px; flex-wrap: wrap; font-size: .82rem; color: #555; font-weight: 600; }
+
+.pay-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #FF6B35 0%, #e55a25 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 17px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .15s, box-shadow .15s;
+  box-shadow: 0 4px 20px rgba(255,107,53,.35);
+}
+.pay-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,107,53,.4); }
+.pay-btn:disabled { opacity: .7; cursor: not-allowed; }
+
+.cancel-note { text-align: center; margin-top: 18px; font-size: .83rem; color: #999; }
+.cancel-note a { color: #FF6B35; }
+
+@media (max-width: 860px) {
+  .checkout-layout { grid-template-columns: 1fr; }
+  .payment-card { position: static; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Government Jobs 2025 | JobLens India{% endblock %}
+
+{% block content %}
+<div class="govt-jobs-page">
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+  <section class="govt-hero">
+    <div class="container">
+      <div class="hero-badge">
+        <span>🏛️ Official &amp; Verified Sources</span>
+      </div>
+      <h1>Government Jobs India</h1>
+      <p class="hero-sub">
+        Latest vacancies from UPSC, SSC, Railways, Banking, Defence and State Boards —
+        updated live via official RSS feeds.
+      </p>
+
+      <!-- Search bar -->
+      <form method="get" action="{% url 'govt_jobs' %}" class="govt-search-form">
+        <div class="search-wrap">
+          <input
+            type="text"
+            name="q"
+            value="{{ query }}"
+            placeholder="Search jobs… e.g. SSC CGL, Railway TC, IBPS PO"
+            class="search-input"
+          />
+          {% if active_category != "all" %}
+            <input type="hidden" name="category" value="{{ active_category }}" />
+          {% endif %}
+          <button type="submit" class="search-btn">🔍 Search</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- ── Category Filter Tabs ──────────────────────────────────────────────── -->
+  <section class="category-bar">
+    <div class="container">
+      <div class="category-scroll">
+        {% for key, meta in categories.items %}
+        <a
+          href="?category={{ key }}{% if query %}&q={{ query }}{% endif %}"
+          class="category-chip {% if active_category == key %}active{% endif %}"
+          style="--chip-color: {{ meta.color }}"
+        >
+          <span class="chip-icon">{{ meta.icon }}</span>
+          <span class="chip-label">{{ meta.label }}</span>
+          <span class="chip-count">{{ category_counts|default_if_none:0 }}</span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats strip ───────────────────────────────────────────────────────── -->
+  <div class="container">
+    <div class="results-strip">
+      <span class="results-count">
+        Showing <strong>{{ total }}</strong> job{{ total|pluralize }}
+        {% if active_category != "all" %}
+          in <strong>{{ categories|get_item:active_category }}</strong>
+        {% endif %}
+        {% if query %} for <strong>"{{ query }}"</strong>{% endif %}
+      </span>
+      {% if active_category != "all" or query %}
+        <a href="{% url 'govt_jobs' %}" class="clear-filters">✕ Clear filters</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Job Cards ─────────────────────────────────────────────────────────── -->
+  <div class="container">
+    {% if jobs %}
+    <div class="jobs-grid">
+      {% for job in jobs %}
+      <article class="job-card" data-category="{{ job.category }}">
+        <!-- Header row -->
+        <div class="card-header">
+          <span class="source-badge">
+            {{ job.source_icon }} {{ job.source }}
+          </span>
+          <span class="cat-tag cat-{{ job.category }}">
+            {% with meta=categories|get_item:job.category %}
+              {{ meta.icon }} {{ meta.label }}
+            {% endwith %}
+          </span>
+        </div>
+
+        <!-- Title -->
+        <h3 class="job-title">
+          <a href="{{ job.link }}" target="_blank" rel="noopener">{{ job.title }}</a>
+        </h3>
+
+        <!-- Summary -->
+        {% if job.summary %}
+        <p class="job-summary">{{ job.summary }}</p>
+        {% endif %}
+
+        <!-- Footer row -->
+        <div class="card-footer">
+          {% if job.pub_date %}
+          <span class="pub-date">🗓 {{ job.pub_date }}</span>
+          {% endif %}
+          <div class="card-actions">
+            <a href="{{ job.link }}" target="_blank" rel="noopener" class="btn-view">
+              View &amp; Apply →
+            </a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="empty-state">
+      <div class="empty-icon">🔍</div>
+      <h3>No jobs found</h3>
+      <p>
+        {% if query %}
+          No results for "<strong>{{ query }}</strong>".
+          <a href="{% url 'govt_jobs' %}">Clear search</a> or try different keywords.
+        {% else %}
+          The feeds may be temporarily unavailable. Please check back shortly.
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+  </div>
+
+</div><!-- /.govt-jobs-page -->
+
+
+<!-- ── Styles ────────────────────────────────────────────────────────────── -->
+<style>
+/* ── Page wrapper ── */
+.govt-jobs-page { background: #f4f6fb; min-height: 100vh; padding-bottom: 60px; }
+
+/* ── Hero ── */
+.govt-hero {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  padding: 60px 0 50px;
+  text-align: center;
+}
+.hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.25);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: .8rem;
+  margin-bottom: 18px;
+  letter-spacing: .5px;
+}
+.govt-hero h1 {
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  font-weight: 800;
+  margin: 0 0 12px;
+}
+.hero-sub {
+  max-width: 600px;
+  margin: 0 auto 32px;
+  color: rgba(255,255,255,.75);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* ── Search ── */
+.govt-search-form { max-width: 640px; margin: 0 auto; }
+.search-wrap {
+  display: flex;
+  gap: 8px;
+  background: rgba(255,255,255,.1);
+  border: 1.5px solid rgba(255,255,255,.25);
+  border-radius: 50px;
+  padding: 6px 6px 6px 20px;
+}
+.search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: .95rem;
+}
+.search-input::placeholder { color: rgba(255,255,255,.55); }
+.search-btn {
+  background: #FF6B35;
+  color: #fff;
+  border: none;
+  border-radius: 50px;
+  padding: 10px 22px;
+  font-size: .9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s;
+}
+.search-btn:hover { background: #e55a25; }
+
+/* ── Category bar ── */
+.category-bar { background: #fff; border-bottom: 1px solid #e8ecf2; padding: 14px 0; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.category-scroll { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scroll-snap-type: x mandatory; }
+.category-scroll::-webkit-scrollbar { height: 3px; }
+.category-scroll::-webkit-scrollbar-thumb { background: #ddd; border-radius: 2px; }
+
+.category-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  scroll-snap-align: start;
+  border: 1.5px solid #e0e4ec;
+  border-radius: 50px;
+  padding: 7px 16px;
+  font-size: .85rem;
+  color: #444;
+  text-decoration: none;
+  background: #fff;
+  cursor: pointer;
+  transition: all .2s;
+}
+.category-chip:hover { border-color: var(--chip-color); color: var(--chip-color); background: #fafafa; }
+.category-chip.active { background: var(--chip-color); border-color: var(--chip-color); color: #fff; }
+.chip-count {
+  background: rgba(0,0,0,.1);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.category-chip.active .chip-count { background: rgba(255,255,255,.25); }
+
+/* ── Results strip ── */
+.results-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 0 12px;
+  font-size: .9rem;
+  color: #555;
+}
+.clear-filters {
+  color: #FF6B35;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* ── Grid ── */
+.jobs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  padding-bottom: 40px;
+}
+
+/* ── Card ── */
+.job-card {
+  background: #fff;
+  border: 1px solid #e8ecf2;
+  border-radius: 14px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow .2s, transform .15s;
+}
+.job-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,.1); transform: translateY(-2px); }
+
+.card-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+.source-badge {
+  font-size: .75rem;
+  background: #f0f2f8;
+  color: #555;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-weight: 600;
+}
+.cat-tag {
+  font-size: .72rem;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-weight: 700;
+}
+.cat-railway   { background: #e0f7f6; color: #00897b; }
+.cat-banking   { background: #e3f2fd; color: #1565c0; }
+.cat-defence   { background: #e8f5e9; color: #2e7d32; }
+.cat-teaching  { background: #fffde7; color: #f57f17; }
+.cat-police    { background: #f3e5f5; color: #7b1fa2; }
+.cat-state     { background: #fce4ec; color: #c62828; }
+.cat-central   { background: #fff3e0; color: #e65100; }
+
+.job-title { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.4; }
+.job-title a { color: #1a1a2e; text-decoration: none; }
+.job-title a:hover { color: #FF6B35; text-decoration: underline; }
+
+.job-summary { margin: 0; font-size: .84rem; color: #666; line-height: 1.5; }
+
+.card-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+.pub-date { font-size: .76rem; color: #999; }
+.btn-view {
+  display: inline-block;
+  background: #FF6B35;
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: .82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .2s;
+}
+.btn-view:hover { background: #e55a25; color: #fff; }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 80px 20px; }
+.empty-icon { font-size: 3rem; margin-bottom: 16px; }
+.empty-state h3 { font-size: 1.4rem; color: #333; margin: 0 0 10px; }
+.empty-state p { color: #666; }
+
+/* ── Container (reuse your existing .container or define here) ── */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+@media (max-width: 600px) {
+  .jobs-grid { grid-template-columns: 1fr; }
+  .govt-hero { padding: 40px 0 36px; }
+  .search-wrap { flex-direction: column; border-radius: 16px; padding: 12px; }
+  .search-btn { border-radius: 10px; }
+}
+</style>
+{% endblock %}

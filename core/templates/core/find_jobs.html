@@ -40,8 +40,20 @@
 .cover-box{background:#fff;border-radius:16px;padding:2rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto}
 .cover-box h3{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:1rem}
 .cover-text{background:var(--cream);border-radius:8px;padding:1rem;font-size:.88rem;line-height:1.7;white-space:pre-wrap;margin-bottom:1rem}
+
+/* ── Category Filter Chips ───────────────────────────────────────────────── */
+.category-filters{margin-bottom:1.25rem}
+.category-filters-label{font-size:.8rem;font-weight:500;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.category-chips{display:flex;gap:.4rem;flex-wrap:wrap}
+.cat-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .9rem;border:1px solid var(--border);border-radius:20px;font-size:.8rem;font-family:'Outfit',sans-serif;font-weight:500;color:var(--muted);background:var(--card);cursor:pointer;transition:all .18s;white-space:nowrap}
+.cat-chip:hover{border-color:var(--accent);color:var(--accent)}
+.cat-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.cat-chip-govt{background:var(--cream);border-color:#c7d2e0;color:var(--ink);text-decoration:none}
+.cat-chip-govt:hover{background:var(--ink);border-color:var(--ink);color:#fff}
+.cat-chip-count{font-size:.7rem;opacity:.7;margin-left:.1rem}
 </style>
 {% endblock %}
+
 {% block content %}
 <p style="color:var(--muted);margin-bottom:1.5rem">Search across LinkedIn, Naukri, Indeed and Internshala. Jobs ranked by your match score.</p>
 
@@ -51,6 +63,7 @@
 </div>
 {% endif %}
 
+<!-- Search Bar — unchanged -->
 <div class="search-bar">
   <div class="search-field" style="flex:2">
     <label>Job Title or Skills</label>
@@ -63,6 +76,7 @@
   <button class="search-btn" onclick="searchJobs()">🔍 Search Jobs</button>
 </div>
 
+<!-- Sources — unchanged -->
 <div style="margin-bottom:1rem">
   <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em">Search on</p>
   <div class="sources">
@@ -73,12 +87,33 @@
   </div>
 </div>
 
+<!-- Skills suggestions — unchanged -->
 {% if skills %}
 <div style="margin-bottom:1.5rem">
   <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em">Search by your skills</p>
   {% for skill in skills %}<span class="skill-suggestion" onclick="document.getElementById('query').value='{{ skill }}';searchJobs()">{{ skill }}</span>{% endfor %}
 </div>
 {% endif %}
+
+<!-- ── NEW: Category Filter Chips ─────────────────────────────────────────── -->
+<div class="category-filters">
+  <p class="category-filters-label">Browse by category</p>
+  <div class="category-chips" id="category-chips">
+    <button class="cat-chip active" data-cat="all"         onclick="filterCat(this)">🔍 All</button>
+    <button class="cat-chip"        data-cat="tech"        onclick="filterCat(this)">💻 Tech &amp; IT</button>
+    <button class="cat-chip"        data-cat="data"        onclick="filterCat(this)">📊 Data &amp; AI</button>
+    <button class="cat-chip"        data-cat="marketing"   onclick="filterCat(this)">📢 Marketing</button>
+    <button class="cat-chip"        data-cat="finance"     onclick="filterCat(this)">💰 Finance</button>
+    <button class="cat-chip"        data-cat="sales"       onclick="filterCat(this)">🤝 Sales</button>
+    <button class="cat-chip"        data-cat="design"      onclick="filterCat(this)">🎨 Design</button>
+    <button class="cat-chip"        data-cat="operations"  onclick="filterCat(this)">⚙️ Operations</button>
+    <button class="cat-chip"        data-cat="hr"          onclick="filterCat(this)">👥 HR</button>
+    <button class="cat-chip"        data-cat="internship"  onclick="filterCat(this)">🎓 Internship</button>
+    <button class="cat-chip"        data-cat="remote"      onclick="filterCat(this)">🏠 Remote</button>
+    <a href="{% url 'govt_jobs' %}" class="cat-chip cat-chip-govt">🏛️ Govt Jobs →</a>
+  </div>
+</div>
+<!-- ── END Category Filter Chips ─────────────────────────────────────────── -->
 
 <div class="loading-jobs" id="loading">
   <div class="spinner"></div>
@@ -94,7 +129,7 @@
   <div class="jobs-grid" id="jobs-grid"></div>
 </div>
 
-<!-- Cover Letter Modal -->
+<!-- Cover Letter Modal — unchanged -->
 <div class="cover-modal" id="cover-modal">
   <div class="cover-box">
     <h3>✍️ AI Cover Letter</h3>
@@ -106,9 +141,12 @@
   </div>
 </div>
 {% endblock %}
+
 {% block extra_js %}
 <script>
+/* ── All your original JS — untouched ──────────────────────────────────── */
 let activeSources = ['LinkedIn','Naukri','Indeed','Internshala'];
+
 function toggleSource(btn) {
   const src = btn.dataset.source;
   if (activeSources.includes(src)) {
@@ -121,6 +159,7 @@ function toggleSource(btn) {
     btn.style.background=colors[src];btn.style.borderColor=colors[src];btn.style.color='#fff';
   }
 }
+
 async function searchJobs() {
   const query = document.getElementById('query').value.trim();
   const location = document.getElementById('location').value.trim() || 'India';
@@ -128,6 +167,9 @@ async function searchJobs() {
   document.getElementById('loading').style.display='block';
   document.getElementById('jobs-grid').innerHTML='';
   document.getElementById('empty-state').style.display='none';
+  // Reset category filter to "All" on every new search
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+  document.querySelector('[data-cat="all"]').classList.add('active');
   try {
     const res = await fetch('/find-jobs/', {
       method:'POST',
@@ -139,13 +181,20 @@ async function searchJobs() {
     renderJobs(data.jobs||[]);
   } catch(e) { document.getElementById('loading').style.display='none'; alert('Search failed: '+e.message); }
 }
+
 function renderJobs(jobs) {
   const grid = document.getElementById('jobs-grid');
-  if (!jobs.length) { document.getElementById('empty-state').style.display='block'; document.getElementById('empty-state').innerHTML='<div style="font-size:3rem;margin-bottom:1rem">😕</div><p>No jobs found. Try a different search term.</p>'; return; }
+  if (!jobs.length) {
+    document.getElementById('empty-state').style.display='block';
+    document.getElementById('empty-state').innerHTML='<div style="font-size:3rem;margin-bottom:1rem">😕</div><p>No jobs found. Try a different search term.</p>';
+    return;
+  }
   grid.innerHTML = jobs.map(job => {
     const score = job.match_score || 0;
     const scoreColor = score>=70?'#16a34a':score>=50?'#2563eb':'#d97706';
-    return `<div class="job-card">
+    // Build a data-text attribute for client-side category filtering
+    const textForFilter = `${job.title} ${job.company} ${job.location}`.toLowerCase();
+    return `<div class="job-card" data-jobtext="${textForFilter}">
       <div class="job-source" style="background:${job.source_color||'#6b7280'}">${job.source}</div>
       <div class="job-title">${job.title}</div>
       <div class="job-company">🏢 ${job.company}</div>
@@ -168,6 +217,7 @@ function renderJobs(jobs) {
     </div>`;
   }).join('');
 }
+
 async function saveJob(job) {
   await fetch('/save-job/', {
     method:'POST',
@@ -176,6 +226,7 @@ async function saveJob(job) {
   });
   alert('Job saved! ✓');
 }
+
 async function getCoverLetter(title, company) {
   const modal = document.getElementById('cover-modal');
   const text = document.getElementById('cover-text');
@@ -191,13 +242,55 @@ async function getCoverLetter(title, company) {
     text.textContent = data.cover_letter;
   } catch(e) { text.textContent = 'Failed to generate. Try again.'; }
 }
+
 function copyLetter() {
   navigator.clipboard.writeText(document.getElementById('cover-text').textContent);
   alert('Copied to clipboard!');
 }
+
 function getCookie(name) {
   let v=null; document.cookie.split(';').forEach(c=>{const [k,val]=c.trim().split('=');if(k===name)v=decodeURIComponent(val);}); return v;
 }
+
 document.getElementById('query').addEventListener('keydown', e => { if(e.key==='Enter') searchJobs(); });
+
+/* ── NEW: Category filter — works on rendered job cards ─────────────────── */
+const CAT_KEYWORDS = {
+  tech:       ['python','java','javascript','react','node','django','developer','engineer','software','devops','cloud','aws','backend','frontend','fullstack','golang','ruby','php','ios','android','mobile','cyber','sre','linux'],
+  data:       ['data','analyst','analytics','ml','machine learning','deep learning','ai','nlp','tableau','power bi','sql','bigquery','spark','pandas','numpy','data science','bi '],
+  marketing:  ['marketing','seo','sem','content','social media','brand','growth','digital','ppc','email marketing','campaigns','copywriter','pr ','public relation'],
+  finance:    ['finance','account','ca ','cfa','cpa','audit','tax','banking','investment','equity','mutual fund','insurance','actuar','tally','gst'],
+  sales:      ['sales','business development','bd ','crm','target','revenue','account manager','pre-sales','inside sales','channel sales'],
+  design:     ['design','ui','ux','figma','sketch','graphic','creative','photoshop','illustrator','motion','animation','visual'],
+  operations: ['operations','ops','supply chain','logistics','warehouse','procurement','scm','inventory','production','lean','six sigma'],
+  hr:         ['hr ','human resource','recruiter','talent','payroll','learning','hris','people','workforce','compensation'],
+  internship: ['intern','internship','trainee','fresher','graduate trainee','entry level','apprentice'],
+  remote:     ['remote','work from home','wfh','hybrid','distributed','anywhere'],
+};
+
+function filterCat(btn) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const cat = btn.dataset.cat;
+  const cards = document.querySelectorAll('.job-card');
+  if (!cards.length) return; // no results yet
+  if (cat === 'all') { cards.forEach(c => c.style.display = ''); return; }
+  const keywords = CAT_KEYWORDS[cat] || [];
+  let visible = 0;
+  cards.forEach(card => {
+    const text = card.dataset.jobtext || card.textContent.toLowerCase();
+    const match = keywords.some(kw => text.includes(kw));
+    card.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  // Show friendly message if nothing matched
+  const empty = document.getElementById('empty-state');
+  if (visible === 0) {
+    empty.style.display = 'block';
+    empty.innerHTML = `<div style="font-size:2.5rem;margin-bottom:1rem">🔍</div><p>No <strong>${btn.textContent.trim()}</strong> jobs in current results.<br><span style="font-size:.85rem">Try searching specifically for this category above.</span></p>`;
+  } else {
+    empty.style.display = 'none';
+  }
+}
 </script>
 {% endblock %}
