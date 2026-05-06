@@ -158,7 +158,7 @@ def payment_callback(request):
 
     messages.success(
         request,
-        f"🎉 Payment successful! Your job "{db_order.job_posting.title}" "
+        f"🎉 Payment successful! Your job '{db_order.job_posting.title}' "
         "is now live for 30 days.",
     )
     return redirect("hirer_dashboard")
