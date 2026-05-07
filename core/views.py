@@ -407,27 +407,56 @@ def find_jobs(request):
 def govt_jobs(request):
     """
     Dedicated /govt-jobs/ page — aggregates RSS feeds with category filter + search.
-    Replaces the old simple govt_jobs view.
+    Always shows fallback jobs even when RSS feeds are unavailable.
     """
     active_category = request.GET.get("category", "all")
     query           = request.GET.get("q", "").strip().lower()
-    all_jobs        = []
 
+    # ── Hardcoded fallback — always visible even when feeds are down ───────────
+    FALLBACK_JOBS = [
+        {"title": "SSC CGL 2025 — Combined Graduate Level Recruitment",         "summary": "Staff Selection Commission invites applications for Group B and C posts across central government departments.",          "link": "https://ssc.nic.in",                "pub_date": "2025", "source": "SSC",             "source_icon": "📋", "category": "central"},
+        {"title": "UPSC Civil Services 2025 — IAS IPS IFS Recruitment",         "summary": "Union Public Service Commission annual civil services examination notification for IAS, IPS, IFS and allied services.",  "link": "https://upsc.gov.in",               "pub_date": "2025", "source": "UPSC",            "source_icon": "🎓", "category": "central"},
+        {"title": "IBPS PO 2025 — Probationary Officer Recruitment",            "summary": "Institute of Banking Personnel Selection recruitment for Probationary Officers in public sector banks across India.",       "link": "https://ibps.in",                   "pub_date": "2025", "source": "IBPS / Banking",  "source_icon": "🏦", "category": "banking"},
+        {"title": "SBI PO 2025 — State Bank Probationary Officers",             "summary": "State Bank of India recruitment for Probationary Officers in Junior Management Grade Scale I.",                           "link": "https://sbi.co.in/careers",         "pub_date": "2025", "source": "SBI Careers",     "source_icon": "🏦", "category": "banking"},
+        {"title": "RRB NTPC 2025 — Railway Non-Technical Popular Categories",   "summary": "Indian Railways RRB recruitment for NTPC posts including Junior Clerk, Accounts Clerk, Junior Time Keeper and more.",     "link": "https://indianrailways.gov.in",     "pub_date": "2025", "source": "Railway (RRB)",   "source_icon": "🚂", "category": "railway"},
+        {"title": "RRB Group D 2025 — Railway Track Maintainer & Helper Posts", "summary": "Railway Recruitment Board Group D recruitment for Track Maintainer, Helper and other Level 1 posts.",                    "link": "https://rrbcdg.gov.in",             "pub_date": "2025", "source": "Railway (RRB)",   "source_icon": "🚂", "category": "railway"},
+        {"title": "Indian Army Agniveer 2025 — Soldier Recruitment",            "summary": "Indian Army recruitment under Agnipath scheme for Agniveer General Duty, Technical and Clerk posts.",                     "link": "https://joinindianarmy.nic.in",     "pub_date": "2025", "source": "Defence",         "source_icon": "🪖", "category": "defence"},
+        {"title": "Indian Navy Agniveer MR 2025 — Matric Recruit Recruitment",  "summary": "Indian Navy recruitment for Agniveer Matric Recruit posts in Chef, Steward and Hydrographic Survey branches.",           "link": "https://joinindiannavy.gov.in",     "pub_date": "2025", "source": "Defence",         "source_icon": "🪖", "category": "defence"},
+        {"title": "CRPF Constable 2025 — Central Reserve Police Force",         "summary": "CRPF recruitment for Constable Technical and Tradesman posts across various trades and specialisations.",                 "link": "https://crpf.gov.in",               "pub_date": "2025", "source": "Police / Para",   "source_icon": "👮", "category": "police"},
+        {"title": "BSF Head Constable 2025 — Border Security Force",            "summary": "Border Security Force recruitment for Head Constable Radio Operator and Radio Mechanic posts.",                          "link": "https://bsf.gov.in",                "pub_date": "2025", "source": "Police / Para",   "source_icon": "👮", "category": "police"},
+        {"title": "KVS TGT PGT 2025 — Kendriya Vidyalaya Teachers",            "summary": "Kendriya Vidyalaya Sangathan recruitment for Trained Graduate Teachers and Post Graduate Teachers across India.",         "link": "https://kvsangathan.nic.in",        "pub_date": "2025", "source": "Teaching",        "source_icon": "📚", "category": "teaching"},
+        {"title": "NVS TGT 2025 — Navodaya Vidyalaya Teachers Recruitment",    "summary": "Navodaya Vidyalaya Samiti recruitment for Trained Graduate Teachers in various subjects.",                               "link": "https://navodaya.gov.in",           "pub_date": "2025", "source": "Teaching",        "source_icon": "📚", "category": "teaching"},
+        {"title": "TNPSC Group 2 2025 — Tamil Nadu Public Service Commission",  "summary": "TNPSC recruitment for Group 2 posts including Deputy Commercial Tax Officer, Revenue Divisional Officer and more.",      "link": "https://tnpsc.gov.in",              "pub_date": "2025", "source": "State Govt",      "source_icon": "🏢", "category": "state"},
+        {"title": "TNPSC Group 4 2025 — VAO and Junior Assistant Posts",        "summary": "TNPSC Village Administrative Officer and Junior Assistant recruitment across Tamil Nadu districts.",                      "link": "https://tnpsc.gov.in",              "pub_date": "2025", "source": "State Govt",      "source_icon": "🏢", "category": "state"},
+        {"title": "NCS Portal — National Career Service — Latest Govt Jobs",    "summary": "Browse thousands of verified government and public sector jobs across India on the official NCS government portal.",      "link": "https://www.ncs.gov.in",            "pub_date": "2025", "source": "NCS Portal",      "source_icon": "🏛️", "category": "central"},
+        {"title": "Employment News — Latest Recruitment Notifications 2025",    "summary": "Official Employment News weekly publication listing all central and state government recruitment notifications.",         "link": "https://employmentnews.gov.in",     "pub_date": "2025", "source": "Employment News", "source_icon": "📰", "category": "central"},
+        {"title": "RBI Grade B 2025 — Reserve Bank of India Officers",          "summary": "Reserve Bank of India recruitment for Grade B officers in General, DEPR and DSIM departments.",                         "link": "https://rbi.org.in/careers",        "pub_date": "2025", "source": "IBPS / Banking",  "source_icon": "🏦", "category": "banking"},
+        {"title": "NABARD Grade A 2025 — Agriculture Development Bank",         "summary": "National Bank for Agriculture and Rural Development recruitment for Assistant Manager Grade A posts.",                   "link": "https://nabard.org",                "pub_date": "2025", "source": "IBPS / Banking",  "source_icon": "🏦", "category": "banking"},
+        {"title": "SSC CHSL 2025 — Combined Higher Secondary Level",            "summary": "SSC recruitment for LDC, JSA, PA, SA and DEO posts for candidates who passed Class 12 examination.",                    "link": "https://ssc.nic.in",                "pub_date": "2025", "source": "SSC",             "source_icon": "📋", "category": "central"},
+        {"title": "DRDO Scientist B 2025 — Defence Research Recruitment",       "summary": "Defence Research and Development Organisation recruitment for Scientist B posts in various technical disciplines.",       "link": "https://drdo.gov.in",               "pub_date": "2025", "source": "Defence",         "source_icon": "🪖", "category": "defence"},
+    ]
+
+    all_jobs = list(FALLBACK_JOBS)
+
+    # ── Try live RSS feeds — skip silently if unavailable ─────────────────────
+    import socket
+    socket.setdefaulttimeout(3)
     for feed_meta in GOVT_RSS_FEEDS_PAGE.values():
         try:
             feed = feedparser.parse(feed_meta["url"])
-            for entry in feed.entries[:20]:
-                title    = getattr(entry, "title", "Untitled")
-                summary  = getattr(entry, "summary", "")
-                all_jobs.append({
-                    "title":       title,
-                    "summary":     summary[:200] + "…" if len(summary) > 200 else summary,
-                    "link":        getattr(entry, "link", "#"),
-                    "pub_date":    getattr(entry, "published", ""),
-                    "source":      feed_meta["label"],
-                    "source_icon": feed_meta["icon"],
-                    "category":    _categorise_govt_job(title, summary),
-                })
+            for entry in feed.entries[:10]:
+                title   = getattr(entry, "title", "")
+                summary = getattr(entry, "summary", "")
+                if title and title != "Untitled":
+                    all_jobs.append({
+                        "title":       title,
+                        "summary":     summary[:200] + "…" if len(summary) > 200 else summary,
+                        "link":        getattr(entry, "link", "#"),
+                        "pub_date":    getattr(entry, "published", ""),
+                        "source":      feed_meta["label"],
+                        "source_icon": feed_meta["icon"],
+                        "category":    _categorise_govt_job(title, summary),
+                    })
         except:
             pass
 
