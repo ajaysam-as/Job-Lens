@@ -49,7 +49,7 @@ def post_job(request):
         for field in required:
             if not data.get(field, "").strip():
                 messages.error(request, f"'{field}' is required.")
-                return render(request, "post_job.html", {"post": data})
+                return render(request, "core/post_job.html", {"post": data})
 
         posting = JobPosting.objects.create(
             posted_by=request.user,
@@ -67,7 +67,7 @@ def post_job(request):
         )
         return redirect("initiate_payment", posting_id=posting.id)
 
-    return render(request, "post_job.html")
+    return render(request, "core/post_job.html")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ def initiate_payment(request, posting_id):
         "user_name": request.user.get_full_name() or request.user.username,
         "user_email": request.user.email,
     }
-    return render(request, "payment_checkout.html", context)
+    return render(request, "core/payment_checkout.html", context)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -158,7 +158,7 @@ def payment_callback(request):
 
     messages.success(
         request,
-        f"Payment successful! Your job '{db_order.job_posting.title}' is now live for 30 days.",
+        f"🎉 Payment successful! Your job '{db_order.job_posting.title}' "
         "is now live for 30 days.",
     )
     return redirect("hirer_dashboard")
@@ -217,7 +217,7 @@ def hirer_dashboard(request):
         "total_views": sum(p.views for p in postings),
         "total_applications": sum(p.applications for p in postings),
     }
-    return render(request, "hirer_dashboard.html", context)
+    return render(request, "core/hirer_dashboard.html", context)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
