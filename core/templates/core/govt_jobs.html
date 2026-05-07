@@ -1,4 +1,4 @@
-{% extends "core/base.html" %}
+{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Government Jobs 2025 | JobLens India{% endblock %}
@@ -62,7 +62,7 @@
       <span class="results-count">
         Showing <strong>{{ total }}</strong> job{{ total|pluralize }}
         {% if active_category != "all" %}
-          in <strong>{{ categories|get_item:active_category }}</strong>
+          in <strong>{{ active_category }}</strong>
         {% endif %}
         {% if query %} for <strong>"{{ query }}"</strong>{% endif %}
       </span>
@@ -84,9 +84,7 @@
             {{ job.source_icon }} {{ job.source }}
           </span>
           <span class="cat-tag cat-{{ job.category }}">
-            {% with meta=categories|get_item:job.category %}
-              {{ meta.icon }} {{ meta.label }}
-            {% endwith %}
+            {{ job.category }}
           </span>
         </div>
 
