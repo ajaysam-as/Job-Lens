@@ -1,6 +1,52 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import JobPosting, RazorpayOrder
+from .models import JobPosting, RazorpayOrder, UserProfile, SavedJob
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# USER PROFILE ADMIN
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display  = ("user", "job_title", "location", "experience_years",
+                     "whatsapp_number", "has_resume", "created_at")
+    search_fields = ("user__username", "user__email", "whatsapp_number", "location", "job_title")
+    readonly_fields = ("created_at", "resume_text", "skills")
+    ordering      = ("-created_at",)
+
+    fieldsets = (
+        ("User", {
+            "fields": ("user",)
+        }),
+        ("Profile", {
+            "fields": ("job_title", "location", "experience_years", "whatsapp_number"),
+        }),
+        ("Resume & Skills", {
+            "fields": ("skills", "resume_text"),
+            "classes": ("collapse",),
+        }),
+        ("Timestamps", {
+            "fields": ("created_at",),
+        }),
+    )
+
+    @admin.display(description="Resume?", boolean=True)
+    def has_resume(self, obj):
+        return bool(obj.resume_text)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SAVED JOBS ADMIN
+# ─────────────────────────────────────────────────────────────────────────────
+
+@admin.register(SavedJob)
+class SavedJobAdmin(admin.ModelAdmin):
+    list_display  = ("user", "job_title", "company", "source", "match_score", "saved_at")
+    list_filter   = ("source", "saved_at")
+    search_fields = ("user__username", "job_title", "company")
+    ordering      = ("-saved_at",)
+    readonly_fields = ("saved_at",)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
