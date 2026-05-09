@@ -32,11 +32,8 @@ urlpatterns = [
     path('hirer/payment/webhook/',       razorpay_webhook, name='razorpay_webhook'),
     path('hirer/dashboard/',             hirer_dashboard,  name='hirer_dashboard'),
 
-    path("tracker/",                  views.tracker_view,           name="tracker"),
-    path("tracker/update/",           views.update_tracker_status,  name="update_tracker_status"),
-    path("tracker/delete/<int:pk>/",  views.delete_tracker,         name="delete_tracker"),
- 
-    # AI Resume Tips
-    path("resume-tips/",              views.resume_tips_view,       name="resume_tips"),
- 
+    path("tracker/",                 views.tracker,        name="tracker"),
+    path("tracker/update/<int:pk>/", views.tracker_update, name="tracker_update"),
+    path("tracker/delete/<int:pk>/", views.tracker_delete, name="tracker_delete"),
+    path("resume-tips/",             views.resume_tips,    name="resume_tips"),
 ]
