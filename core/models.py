@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-
+import datetime 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # EXISTING MODELS (unchanged)
@@ -155,3 +155,33 @@ class RazorpayOrder(models.Model):
         self.paid_at = timezone.now()
         self.save(update_fields=["status", "razorpay_payment_id", "razorpay_signature", "paid_at"])
         self.job_posting.activate()
+class ApplicationTracker(models.Model):
+    """Tracks a seeker's job applications across a Kanban pipeline."""
+ 
+    STATUS_CHOICES = [
+        ("applied",       "Applied"),
+        ("interviewing",  "Interviewing"),
+        ("offered",       "Offered"),
+        ("rejected",      "Rejected"),
+    ]
+ 
+    user         = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="tracked_applications"
+    )
+    job_title    = models.CharField(max_length=200)
+    company      = models.CharField(max_length=200)
+    location     = models.CharField(max_length=200, blank=True)
+    apply_url    = models.URLField(max_length=500, blank=True)
+    status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default="applied")
+    notes        = models.TextField(blank=True, help_text="Interview rounds, contact, salary discussed…")
+    applied_date = models.DateField(default=datetime.date.today)
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+ 
+    class Meta:
+        ordering           = ["-updated_at"]
+        verbose_name       = "Application Tracker"
+        verbose_name_plural = "Application Tracker"
+ 
+    def __str__(self):
+        return f"{self.job_title} @ {self.company} [{self.get_status_display()}]"

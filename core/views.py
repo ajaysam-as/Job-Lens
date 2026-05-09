@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from .models import UserProfile, SavedJob
+from .models import UserProfile, SavedJob, ApplicationTracker, JobPosting, RazorpayOrder
 import PyPDF2, docx, os, json, io, requests, feedparser
 from bs4 import BeautifulSoup
 import urllib.parse
@@ -540,3 +540,230 @@ def profile(request):
         return redirect('profile')
     skills = json.loads(prof.skills) if prof.skills else []
     return render(request, 'core/profile.html', {'prof': prof, 'skills': skills})
+
+
+# =============================================================================
+# APPLICATION TRACKER
+# =============================================================================
+
+@login_required
+def tracker(request):
+    """Kanban board — GET renders the board, POST adds a new application."""
+    if request.method == 'POST':
+        ApplicationTracker.objects.create(
+            user=request.user,
+            job_title=request.POST.get('job_title', '').strip(),
+            company=request.POST.get('company', '').strip(),
+            location=request.POST.get('location', '').strip(),
+            apply_url=request.POST.get('apply_url', '').strip(),
+            status=request.POST.get('status', 'applied'),
+            notes=request.POST.get('notes', '').strip(),
+        )
+        messages.success(request, 'Application added!')
+        return redirect('tracker')
+
+    applications = ApplicationTracker.objects.filter(user=request.user).order_by('-created_at')
+
+    columns = {
+        'applied':      {'label': 'Applied',     'icon': '📤', 'color': '#6366f1', 'items': []},
+        'interviewing': {'label': 'Interviewing', 'icon': '🗣️', 'color': '#f59e0b', 'items': []},
+        'offered':      {'label': 'Offered',      'icon': '🎉', 'color': '#10b981', 'items': []},
+        'rejected':     {'label': 'Rejected',     'icon': '❌', 'color': '#ef4444', 'items': []},
+    }
+    for app in applications:
+        status = app.status if app.status in columns else 'applied'
+        columns[status]['items'].append(app)
+
+    return render(request, 'core/tracker.html', {
+        'columns':        columns,
+        'total':          applications.count(),
+        'status_choices': ApplicationTracker.STATUS_CHOICES,
+    })
+
+
+@login_required
+@csrf_exempt
+def tracker_update(request, pk):
+    """AJAX — update status and/or notes for a tracker entry."""
+    if request.method == 'POST':
+        try:
+            app  = ApplicationTracker.objects.get(pk=pk, user=request.user)
+            data = json.loads(request.body)
+            if 'status' in data:
+                app.status = data['status']
+            if 'notes' in data:
+                app.notes = data['notes']
+            app.save()
+            return JsonResponse({'ok': True, 'status': app.status, 'notes': app.notes})
+        except ApplicationTracker.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@login_required
+@csrf_exempt
+def tracker_delete(request, pk):
+    """AJAX — delete a tracker entry."""
+    if request.method == 'POST':
+        try:
+            ApplicationTracker.objects.get(pk=pk, user=request.user).delete()
+            return JsonResponse({'ok': True})
+        except ApplicationTracker.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+# =============================================================================
+# RESUME TIPS AI
+# =============================================================================
+
+@login_required
+def resume_tips(request):
+    """
+    GET  — show the page with a Generate button (or resume-missing warning).
+    POST — call Groq, parse 5 structured tips, render tip cards.
+    """
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    tips  = None
+    error = None
+
+    if request.method == 'POST':
+        if not profile.resume_text:
+            error = "No resume found. Please upload your resume first."
+        else:
+            try:
+                prompt = f"""You are an expert resume coach. Analyse this resume and return EXACTLY 5 actionable improvement tips as valid JSON — no markdown, no extra text.
+
+Format:
+[
+  {{
+    "tip_number": 1,
+    "category": "Impact",
+    "priority": "high",
+    "title": "Short title (max 8 words)",
+    "detail": "2-3 sentence specific actionable advice referencing the resume."
+  }}
+]
+
+Priority must be one of: "high", "medium", "low"
+Category examples: Impact, Formatting, Keywords, Achievements, Skills, Summary, Experience, Education
+
+Resume:
+{profile.resume_text[:4000]}"""
+
+                raw = ai_call(
+                    [
+                        {"role": "system", "content": "Return only a valid JSON array. No markdown fences, no preamble."},
+                        {"role": "user",   "content": prompt},
+                    ],
+                    max_tokens=1000,
+                    temp=0.4,
+                )
+                raw  = raw.replace("```json", "").replace("```", "").strip()
+                tips = json.loads(raw)
+
+                if not isinstance(tips, list):
+                    raise ValueError("Expected a JSON array")
+
+                # Attach colour styles based on priority
+                priority_styles = {
+                    'high':   {'border': '#ef4444', 'badge_bg': '#fef2f2', 'badge_text': '#b91c1c'},
+                    'medium': {'border': '#f59e0b', 'badge_bg': '#fffbeb', 'badge_text': '#92400e'},
+                    'low':    {'border': '#10b981', 'badge_bg': '#ecfdf5', 'badge_text': '#065f46'},
+                }
+                for tip in tips:
+                    p = tip.get('priority', 'medium').lower()
+                    tip['style'] = priority_styles.get(p, priority_styles['medium'])
+
+            except json.JSONDecodeError:
+                error = "AI returned an unexpected format — please try again."
+            except Exception as e:
+                error = f"Something went wrong: {str(e)}"
+
+    return render(request, 'core/resume_tips.html', {
+        'profile':    profile,
+        'tips':       tips,
+        'error':      error,
+        'has_resume': bool(profile.resume_text),
+    })
+
+
+# =============================================================================
+# HIRER — post job + dashboard
+# =============================================================================
+
+@login_required
+def post_job(request):
+    """
+    GET  — show the job-posting form with a Razorpay order pre-created.
+    POST — verify payment, create JobPosting + RazorpayOrder, redirect to dashboard.
+    """
+    import razorpay
+
+    RAZORPAY_KEY_ID     = os.environ.get("RAZORPAY_KEY_ID", "")
+    RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "")
+    PRICE_PAISE         = 99900  # ₹999
+
+    if request.method == 'POST':
+        payment_id = request.POST.get('razorpay_payment_id', '')
+        order_id   = request.POST.get('razorpay_order_id', '')
+        signature  = request.POST.get('razorpay_signature', '')
+
+        try:
+            client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+            client.utility.verify_payment_signature({
+                'razorpay_order_id':   order_id,
+                'razorpay_payment_id': payment_id,
+                'razorpay_signature':  signature,
+            })
+        except Exception:
+            messages.error(request, 'Payment verification failed. Please try again.')
+            return redirect('post_job')
+
+        job = JobPosting.objects.create(
+            hirer=request.user,
+            title=request.POST.get('title', '').strip(),
+            company=request.POST.get('company', '').strip(),
+            location=request.POST.get('location', '').strip(),
+            job_type=request.POST.get('job_type', 'full-time'),
+            salary_range=request.POST.get('salary_range', '').strip(),
+            description=request.POST.get('description', '').strip(),
+            skills_required=request.POST.get('skills_required', '').strip(),
+            apply_url=request.POST.get('apply_url', '').strip(),
+            is_active=True,
+        )
+
+        RazorpayOrder.objects.create(
+            user=request.user,
+            order_id=order_id,
+            payment_id=payment_id,
+            amount=PRICE_PAISE,
+            status='paid',
+            job_posting=job,
+        )
+
+        messages.success(request, 'Job posted successfully! It is now live.')
+        return redirect('hirer_dashboard')
+
+    # GET — create a fresh Razorpay order for the payment widget
+    try:
+        client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+        order  = client.order.create({'amount': PRICE_PAISE, 'currency': 'INR', 'payment_capture': 1})
+        razorpay_order_id = order['id']
+    except Exception:
+        razorpay_order_id = ''
+
+    return render(request, 'core/post_job.html', {
+        'razorpay_key_id':   RAZORPAY_KEY_ID,
+        'razorpay_order_id': razorpay_order_id,
+        'price':             '999',
+    })
+
+
+@login_required
+def hirer_dashboard(request):
+    """Show all job postings created by the logged-in hirer."""
+    jobs = JobPosting.objects.filter(hirer=request.user).order_by('-created_at')
+    return render(request, 'core/hirer_dashboard.html', {'jobs': jobs})

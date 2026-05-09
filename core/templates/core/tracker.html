@@ -1,0 +1,368 @@
+{% extends "core/base.html" %}
+{% block title %}Application Tracker — JobLens{% endblock %}
+{% block page_title %}Application Tracker{% endblock %}
+{% block nav_tracker %}active{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ── Page header ────────────────────────────────────────────── */
+.tracker-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:1.75rem;gap:1rem;flex-wrap:wrap}
+.tracker-header h2{font-family:'DM Serif Display',serif;font-size:1.6rem;line-height:1.2}
+.tracker-sub{color:var(--muted);font-size:.85rem;margin-top:.3rem}
+.tracker-stats{display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.stat-chip{font-family:'DM Mono',monospace;font-size:.75rem;padding:.35rem .85rem;border-radius:20px;border:1px solid var(--border);background:var(--card);color:var(--muted)}
+.stat-chip strong{color:var(--ink)}
+
+/* ── Kanban board ───────────────────────────────────────────── */
+.kanban-board{display:flex;gap:1rem;overflow-x:auto;padding-bottom:1.5rem;min-height:60vh;scrollbar-width:thin}
+.kanban-board::-webkit-scrollbar{height:6px}
+.kanban-board::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.kanban-col{flex:0 0 270px;background:var(--cream);border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:.75rem;transition:background .2s,box-shadow .2s}
+.kanban-col.drag-over{background:#eff6ff;box-shadow:inset 0 0 0 2px var(--accent)}
+
+.col-header{display:flex;align-items:center;justify-content:space-between;padding:.25rem 0 .5rem}
+.col-title{font-weight:600;font-size:.88rem;display:flex;align-items:center;gap:.45rem}
+.col-count{font-family:'DM Mono',monospace;font-size:.7rem;color:var(--muted);background:rgba(0,0,0,.06);padding:.1rem .5rem;border-radius:20px;min-width:22px;text-align:center}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+.kanban-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:1rem;cursor:grab;transition:box-shadow .15s,transform .15s,opacity .15s;user-select:none}
+.kanban-card:active{cursor:grabbing}
+.kanban-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.kanban-card.dragging{opacity:.45;transform:rotate(1.5deg) scale(.97);box-shadow:0 12px 30px rgba(0,0,0,.18)}
+
+.card-title{font-weight:600;font-size:.9rem;line-height:1.35;margin-bottom:.2rem;color:var(--ink)}
+.card-company{font-size:.8rem;color:var(--muted);margin-bottom:.6rem}
+.card-notes{font-size:.76rem;color:#6b7280;background:var(--cream);padding:.4rem .55rem;border-radius:6px;line-height:1.5;margin-bottom:.6rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.card-footer{display:flex;justify-content:space-between;align-items:center}
+.card-date{font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted)}
+.card-actions{display:flex;gap:.25rem}
+.card-btn{background:none;border:none;cursor:pointer;font-size:.82rem;padding:.2rem .3rem;border-radius:5px;color:var(--muted);transition:all .15s;line-height:1}
+.card-btn:hover{background:var(--cream);color:var(--ink)}
+
+/* ── Column empty state ─────────────────────────────────────── */
+.col-empty{text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.82rem;display:flex;flex-direction:column;align-items:center;gap:.4rem}
+.col-empty-icon{font-size:1.8rem;opacity:.4}
+
+/* ── Add-card button inside column ─────────────────────────── */
+.col-add-btn{width:100%;background:none;border:1.5px dashed var(--border);border-radius:8px;padding:.55rem;color:var(--muted);font-size:.8rem;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif;margin-top:auto}
+.col-add-btn:hover{border-color:var(--accent);color:var(--accent);background:#eff6ff}
+
+/* ── Modal ──────────────────────────────────────────────────── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,14,13,.45);z-index:1000;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border-radius:16px;padding:2rem;width:500px;max-width:100%;max-height:90vh;overflow-y:auto;position:relative;box-shadow:0 24px 60px rgba(0,0,0,.2)}
+.modal-title{font-family:'DM Serif Display',serif;font-size:1.3rem;margin-bottom:1.5rem}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.1rem;cursor:pointer;color:var(--muted);padding:.3rem;border-radius:6px;transition:all .15s}
+.modal-close:hover{background:var(--cream);color:var(--ink)}
+
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:.82rem;font-weight:500;margin-bottom:.35rem;color:var(--ink)}
+.form-control{width:100%;padding:.6rem .9rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif;font-size:.88rem;background:var(--card);color:var(--ink);transition:border-color .2s;outline:none}
+.form-control:focus{border-color:var(--accent)}
+textarea.form-control{resize:vertical;min-height:80px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+
+.status-picker{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-top:.35rem}
+.sp-opt{padding:.55rem .5rem;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;font-size:.8rem;font-weight:500;transition:all .18s;background:var(--card)}
+.sp-opt:hover{border-color:var(--accent)}
+.sp-opt.sel{border-color:var(--accent);background:#eff6ff;color:var(--accent)}
+
+.modal-footer{display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border)}
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page header -->
+<div class="tracker-header">
+  <div>
+    <h2>Application Tracker</h2>
+    <p class="tracker-sub">Drag cards to update status · {{ total }} application{{ total|pluralize }} tracked</p>
+  </div>
+  <button class="btn btn-primary" onclick="openAddModal(null)">➕ Add Application</button>
+</div>
+
+<!-- Kanban board -->
+<div class="kanban-board" id="kanbanBoard">
+  {% for col in columns %}
+  <div class="kanban-col"
+       id="col-{{ col.status }}"
+       data-status="{{ col.status }}"
+       ondragover="allowDrop(event)"
+       ondragleave="leaveDrop(event)"
+       ondrop="dropCard(event, '{{ col.status }}')">
+
+    <div class="col-header">
+      <span class="col-title">{{ col.icon }} {{ col.label }}</span>
+      <span class="col-count" id="cnt-{{ col.status }}">{{ col.apps|length }}</span>
+    </div>
+
+    <div id="cards-{{ col.status }}" style="display:flex;flex-direction:column;gap:.75rem;flex:1">
+      {% for app in col.apps %}
+      <div class="kanban-card"
+           id="card-{{ app.id }}"
+           draggable="true"
+           ondragstart="dragStart(event, {{ app.id }})"
+           ondragend="dragEnd(event)">
+        <div class="card-title">{{ app.job_title }}</div>
+        <div class="card-company">🏢 {{ app.company }}{% if app.location %} · {{ app.location }}{% endif %}</div>
+        {% if app.notes %}
+        <div class="card-notes">{{ app.notes }}</div>
+        {% endif %}
+        <div class="card-footer">
+          <span class="card-date">{{ app.applied_date|date:"d M Y" }}</span>
+          <div class="card-actions">
+            {% if app.apply_url %}
+            <a href="{{ app.apply_url }}" target="_blank" class="card-btn" title="Open listing">🔗</a>
+            {% endif %}
+            <button class="card-btn" title="Edit"
+              onclick="openEditModal(
+                {{ app.id }},
+                '{{ app.job_title|escapejs }}',
+                '{{ app.company|escapejs }}',
+                '{{ app.notes|escapejs }}',
+                '{{ app.status }}'
+              )">✏️</button>
+            <button class="card-btn" title="Delete" onclick="deleteApp({{ app.id }})">🗑️</button>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-empty" id="empty-{{ col.status }}">
+        <span class="col-empty-icon">{{ col.icon }}</span>
+        <span>No applications</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <button class="col-add-btn" onclick="openAddModal('{{ col.status }}')">+ Add here</button>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- ── Add Application Modal ─────────────────────────────────── -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    <div class="modal-title">New Application</div>
+    <form method="POST" action="{% url 'tracker' %}">
+      {% csrf_token %}
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Job Title *</label>
+          <input type="text" name="job_title" class="form-control" placeholder="e.g. Backend Engineer" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Company *</label>
+          <input type="text" name="company" class="form-control" placeholder="e.g. Swiggy" required>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" name="location" class="form-control" placeholder="e.g. Bengaluru">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date Applied</label>
+          <input type="date" name="applied_date" class="form-control" id="addDateInput">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Job Listing URL</label>
+        <input type="url" name="apply_url" class="form-control" placeholder="https://…">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <div class="status-picker" id="addStatusPicker">
+          <div class="sp-opt sel" data-val="applied"      onclick="pickStatus(this,'addStatusHidden')">📤 Applied</div>
+          <div class="sp-opt"     data-val="interviewing" onclick="pickStatus(this,'addStatusHidden')">🎤 Interviewing</div>
+          <div class="sp-opt"     data-val="offered"      onclick="pickStatus(this,'addStatusHidden')">🎉 Offered</div>
+          <div class="sp-opt"     data-val="rejected"     onclick="pickStatus(this,'addStatusHidden')">❌ Rejected</div>
+        </div>
+        <input type="hidden" name="status" id="addStatusHidden" value="applied">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea name="notes" class="form-control" placeholder="Interview rounds, salary discussed, contact name…"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="closeModal('addModal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Edit / Notes Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+    <div class="modal-title" id="editModalTitle">Edit Application</div>
+    <div class="form-group">
+      <label class="form-label">Status</label>
+      <div class="status-picker" id="editStatusPicker">
+        <div class="sp-opt" data-val="applied"      onclick="pickStatus(this,'editStatusVal')">📤 Applied</div>
+        <div class="sp-opt" data-val="interviewing" onclick="pickStatus(this,'editStatusVal')">🎤 Interviewing</div>
+        <div class="sp-opt" data-val="offered"      onclick="pickStatus(this,'editStatusVal')">🎉 Offered</div>
+        <div class="sp-opt" data-val="rejected"     onclick="pickStatus(this,'editStatusVal')">❌ Rejected</div>
+      </div>
+      <input type="hidden" id="editStatusVal" value="">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-control" id="editNotesInput" rows="4" placeholder="Interview rounds, contact, salary discussed…"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF = '{{ csrf_token }}';
+let draggedId = null;
+let editId    = null;
+
+/* ── Drag & Drop ──────────────────────────────────── */
+function dragStart(e, id) {
+  draggedId = id;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function dragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+}
+function allowDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+function leaveDrop(e) {
+  if (!e.currentTarget.contains(e.relatedTarget))
+    e.currentTarget.classList.remove('drag-over');
+}
+function dropCard(e, newStatus) {
+  e.preventDefault();
+  const col = e.currentTarget;
+  col.classList.remove('drag-over');
+  if (!draggedId) return;
+
+  const card = document.getElementById('card-' + draggedId);
+  if (!card) return;
+
+  // Optimistic UI — move the card immediately
+  const dest = document.getElementById('cards-' + newStatus);
+  const emptyDest = document.getElementById('empty-' + newStatus);
+  dest.appendChild(card);
+  if (emptyDest) emptyDest.style.display = 'none';
+  refreshEmptyStates();
+  refreshCounts();
+
+  // Persist via AJAX
+  fetch('{% url "update_tracker_status" %}', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body: JSON.stringify({ id: draggedId, status: newStatus }),
+  })
+  .then(r => r.json())
+  .then(d => { if (!d.success) location.reload(); })
+  .catch(() => location.reload());
+
+  draggedId = null;
+}
+
+/* ── Delete ───────────────────────────────────────── */
+function deleteApp(id) {
+  if (!confirm('Remove this application from your tracker?')) return;
+  fetch('/tracker/delete/' + id + '/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF },
+  })
+  .then(r => r.json())
+  .then(d => {
+    if (d.success) {
+      const card = document.getElementById('card-' + id);
+      if (card) {
+        card.style.transition = 'opacity .2s, transform .2s';
+        card.style.opacity = '0';
+        card.style.transform = 'scale(.9)';
+        setTimeout(() => { card.remove(); refreshEmptyStates(); refreshCounts(); }, 220);
+      }
+    }
+  });
+}
+
+/* ── Modal helpers ────────────────────────────────── */
+function openAddModal(preStatus) {
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('addDateInput').value = today;
+
+  const picker = document.getElementById('addStatusPicker');
+  const target  = preStatus || 'applied';
+  picker.querySelectorAll('.sp-opt').forEach(o => {
+    o.classList.toggle('sel', o.dataset.val === target);
+  });
+  document.getElementById('addStatusHidden').value = target;
+
+  document.getElementById('addModal').classList.add('open');
+}
+
+function openEditModal(id, title, company, notes, status) {
+  editId = id;
+  document.getElementById('editModalTitle').textContent = title + ' @ ' + company;
+  document.getElementById('editNotesInput').value = notes;
+  document.getElementById('editStatusVal').value  = status;
+  document.getElementById('editStatusPicker').querySelectorAll('.sp-opt').forEach(o => {
+    o.classList.toggle('sel', o.dataset.val === status);
+  });
+  document.getElementById('editModal').classList.add('open');
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function pickStatus(el, hiddenId) {
+  el.closest('.status-picker').querySelectorAll('.sp-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById(hiddenId).value = el.dataset.val;
+}
+
+function saveEdit() {
+  const newStatus = document.getElementById('editStatusVal').value;
+  const notes     = document.getElementById('editNotesInput').value;
+
+  fetch('{% url "update_tracker_status" %}', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+    body:    JSON.stringify({ id: editId, status: newStatus, notes }),
+  })
+  .then(r => r.json())
+  .then(d => { if (d.success) location.reload(); });
+}
+
+/* ── Helpers ──────────────────────────────────────── */
+function refreshCounts() {
+  ['applied','interviewing','offered','rejected'].forEach(s => {
+    const cnt = document.querySelectorAll('#cards-' + s + ' .kanban-card').length;
+    const el  = document.getElementById('cnt-' + s);
+    if (el) el.textContent = cnt;
+  });
+}
+function refreshEmptyStates() {
+  ['applied','interviewing','offered','rejected'].forEach(s => {
+    const cards = document.querySelectorAll('#cards-' + s + ' .kanban-card');
+    const empty = document.getElementById('empty-' + s);
+    if (empty) empty.style.display = cards.length ? 'none' : 'flex';
+  });
+}
+
+/* Close on overlay click */
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+});
+</script>
+{% endblock %}
