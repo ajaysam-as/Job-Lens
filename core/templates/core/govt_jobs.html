@@ -176,12 +176,12 @@
 
   <!-- Category grid -->
   <div class="gj-cats">
-    {% for key, meta in categories.items %}
-    <a href="?category={{ key }}{% if query %}&q={{ query }}{% endif %}"
-       class="gj-cat-btn {% if active_category == key %}active{% endif %}">
-      <span class="gj-cat-icon">{{ meta.icon }}</span>
-      <span>{{ meta.label }}</span>
-      <span class="gj-cat-count">{{ category_counts|default_if_none:0 }}</span>
+    {% for cat in categories_list %}
+    <a href="?category={{ cat.key }}{% if query %}&q={{ query }}{% endif %}"
+       class="gj-cat-btn {% if active_category == cat.key %}active{% endif %}">
+      <span class="gj-cat-icon">{{ cat.icon }}</span>
+      <span>{{ cat.label }}</span>
+      <span class="gj-cat-count">{{ cat.count }}</span>
     </a>
     {% endfor %}
   </div>

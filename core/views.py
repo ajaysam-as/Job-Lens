@@ -438,7 +438,7 @@ def search_workindia_jobs(query, num=10):
     return jobs
 
 
-def fetch_govt_rss_jobs(category_filter=None, max_per_feed=15):
+def fetch_govt_rss_jobs(category_filter=None, max_per_feed=25):
     all_jobs = []
     for feed_info in GOVT_RSS_FEEDS_LIST:
         if category_filter and feed_info["category"] != category_filter:
@@ -667,7 +667,7 @@ def govt_jobs(request):
     for feed_meta in GOVT_RSS_FEEDS_PAGE.values():
         try:
             feed = feedparser.parse(feed_meta["url"])
-            for entry in feed.entries[:10]:
+            for entry in feed.entries[:25]:
                 title   = getattr(entry, "title", "")
                 summary = getattr(entry, "summary", "")
                 if title and title != "Untitled":
@@ -687,15 +687,28 @@ def govt_jobs(request):
     if query:
         all_jobs = [j for j in all_jobs if query in j["title"].lower() or query in j["summary"].lower()]
 
-    category_counts = {"all": len(all_jobs)}
-    for cat in CATEGORY_META:
-        if cat != "all":
-            category_counts[cat] = sum(1 for j in all_jobs if j["category"] == cat)
+    # Build a flat list of (key, meta, count) so the template never needs dict[variable_key]
+    all_count = len(all_jobs)
+    categories_list = []
+    for cat_key, meta in CATEGORY_META.items():
+        if cat_key == "all":
+            count = all_count
+        else:
+            count = sum(1 for j in all_jobs if j["category"] == cat_key)
+        categories_list.append({
+            "key":    cat_key,
+            "label":  meta["label"],
+            "icon":   meta["icon"],
+            "color":  meta["color"],
+            "count":  count,
+        })
 
     return render(request, "core/govt_jobs.html", {
-        "jobs": all_jobs, "categories": CATEGORY_META,
-        "active_category": active_category, "category_counts": category_counts,
-        "query": query, "total": len(all_jobs),
+        "jobs":            all_jobs,
+        "categories_list": categories_list,
+        "active_category": active_category,
+        "query":           query,
+        "total":           all_count,
     })
 
 @login_required
