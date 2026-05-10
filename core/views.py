@@ -9,130 +9,580 @@ from .models import UserProfile, SavedJob, ApplicationTracker, JobPosting, Razor
 import PyPDF2, docx, os, json, io, requests, feedparser
 from bs4 import BeautifulSoup
 import urllib.parse
+from datetime import datetime
 
 MODEL = "llama-3.3-70b-versatile"
 
-# ── Government RSS Feeds ───────────────────────────────────────────────────────
-GOVT_RSS_FEEDS_LIST = [
-    {"url": "https://www.sarkariresult.com/feed/",                "source": "SarkariResult",   "category": "government"},
-    {"url": "https://www.govtjobsblog.in/feed/",                  "source": "GovtJobsBlog",    "category": "government"},
-    {"url": "https://www.freejobalert.com/feed/",                 "source": "FreeJobAlert",    "category": "government"},
-    {"url": "https://ibps.in/feed/",                              "source": "IBPS",            "category": "banking"},
-    {"url": "https://www.sbi.co.in/web/careers/rss",              "source": "SBI Careers",     "category": "banking"},
-    {"url": "https://indianrailways.gov.in/railwayboard/rss.jsp", "source": "Indian Railways", "category": "railways"},
-    {"url": "https://www.ncs.gov.in/jobseeker/rss",               "source": "NCS Portal",      "category": "government"},
+# ─────────────────────────────────────────────────────────────────────────────
+# LIVE SEARCH URL BUILDERS
+# Each function returns a live search results URL on the real portal.
+# The user always lands on a fresh, current page — never an expired listing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def make_linkedin_url(query, location="India"):
+    return f"https://www.linkedin.com/jobs/search/?keywords={urllib.parse.quote(query)}&location={urllib.parse.quote(location)}&f_TPR=r604800&sortBy=DD"
+
+def make_naukri_url(query, location="india"):
+    q = query.lower().replace(" ", "-")
+    l = location.lower().replace(" ", "-")
+    return f"https://www.naukri.com/{q}-jobs-in-{l}"
+
+def make_indeed_url(query, location="India"):
+    return f"https://in.indeed.com/jobs?q={urllib.parse.quote(query)}&l={urllib.parse.quote(location)}&fromage=14&sort=date"
+
+def make_internshala_url(query):
+    q = query.lower().replace(" ", "-")
+    return f"https://internshala.com/jobs/{q}-jobs"
+
+def make_shine_url(query, location="india"):
+    q = query.lower().replace(" ", "-")
+    l = location.lower().replace(" ", "-")
+    return f"https://www.shine.com/job-search/{q}-jobs-in-{l}"
+
+def make_foundit_url(query, location="India"):
+    return f"https://www.foundit.in/srp/results?query={urllib.parse.quote(query)}&location={urllib.parse.quote(location)}"
+
+def make_apna_url(query):
+    return f"https://apna.co/jobs?q={urllib.parse.quote(query)}"
+
+def make_freshersworld_url(query):
+    q = query.lower().replace(" ", "-")
+    return f"https://www.freshersworld.com/jobs/jobsearch/{q}-jobs"
+
+def make_timesjobs_url(query, location="India"):
+    return f"https://www.timesjobs.com/candidate/job-search.html?searchType=personalizedSearch&from=submit&txtKeywords={urllib.parse.quote(query)}&txtLocation={urllib.parse.quote(location)}"
+
+def make_hirist_url(query):
+    return f"https://www.hirist.tech/s/{urllib.parse.quote(query)}"
+
+def make_naukrigulf_url(query):
+    q = query.lower().replace(" ", "-")
+    return f"https://www.naukrigulf.com/{q}-jobs"
+
+def make_workindia_url(query):
+    return f"https://www.workindia.in/job-search?q={urllib.parse.quote(query)}"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CATEGORY PORTAL DEFINITIONS
+# Each category has a list of "portal cards" — verified live search links.
+# These are shown to the user as quality, always-fresh job opportunities.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_portal_cards(category, query, location="India"):
+    """
+    Return a list of job portal cards for the given category.
+    Each card is a live search link — always fresh, never expired.
+    """
+    cat_config = {
+        # ── White collar / tech ──────────────────────────────────────────────
+        "tech": {
+            "label": "Tech & IT Jobs",
+            "portals": [
+                {"name": "LinkedIn",     "color": "#0077b5", "icon": "💼", "note": "Top tech roles, MNCs and startups"},
+                {"name": "Naukri",       "color": "#ef4444", "icon": "🔴", "note": "India's largest IT job board"},
+                {"name": "Indeed",       "color": "#003A9B", "icon": "🔍", "note": "Global & Indian tech listings"},
+                {"name": "Hirist",       "color": "#0f172a", "icon": "💻", "note": "Tech-only jobs, handpicked quality"},
+                {"name": "Internshala",  "color": "#16a34a", "icon": "🌱", "note": "Freshers and junior developer roles"},
+                {"name": "Shine",        "color": "#7c3aed", "icon": "✨", "note": "IT & software engineer vacancies"},
+                {"name": "Foundit",      "color": "#9333ea", "icon": "🔮", "note": "Monster India — tech & IT listings"},
+                {"name": "TimesJobs",    "color": "#dc2626", "icon": "📰", "note": "Times Group — verified tech roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "software engineer", "Naukri": query or "software engineer",
+                "Indeed": query or "software developer", "Hirist": query or "developer",
+                "Internshala": query or "software developer intern", "Shine": query or "IT jobs",
+                "Foundit": query or "software engineer", "TimesJobs": query or "IT engineer",
+            }
+        },
+        "data": {
+            "label": "Data & AI Jobs",
+            "portals": [
+                {"name": "LinkedIn",    "color": "#0077b5", "icon": "💼", "note": "Data science & ML roles"},
+                {"name": "Naukri",      "color": "#ef4444", "icon": "🔴", "note": "Data analyst & BI vacancies"},
+                {"name": "Indeed",      "color": "#003A9B", "icon": "🔍", "note": "AI & analytics listings"},
+                {"name": "Hirist",      "color": "#0f172a", "icon": "💻", "note": "ML engineer & data roles"},
+                {"name": "Internshala", "color": "#16a34a", "icon": "🌱", "note": "Data science internships"},
+            ],
+            "queries": {
+                "LinkedIn": query or "data scientist", "Naukri": query or "data analyst",
+                "Indeed": query or "data analyst", "Hirist": query or "machine learning",
+                "Internshala": query or "data science intern",
+            }
+        },
+        "marketing": {
+            "label": "Marketing Jobs",
+            "portals": [
+                {"name": "LinkedIn",   "color": "#0077b5", "icon": "💼", "note": "Digital marketing & brand roles"},
+                {"name": "Naukri",     "color": "#ef4444", "icon": "🔴", "note": "Marketing manager vacancies"},
+                {"name": "Indeed",     "color": "#003A9B", "icon": "🔍", "note": "SEO, SEM & content roles"},
+                {"name": "Internshala","color": "#16a34a", "icon": "🌱", "note": "Marketing internships & freshers"},
+                {"name": "Shine",      "color": "#7c3aed", "icon": "✨", "note": "Digital marketing specialists"},
+            ],
+            "queries": {
+                "LinkedIn": query or "digital marketing", "Naukri": query or "marketing manager",
+                "Indeed": query or "digital marketing", "Internshala": query or "marketing intern",
+                "Shine": query or "digital marketing",
+            }
+        },
+        "finance": {
+            "label": "Finance & Accounting Jobs",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Finance, CA & investment roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Accounts, audit & tax vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Finance analyst listings"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Banking & finance specialists"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Verified finance openings"},
+            ],
+            "queries": {
+                "LinkedIn": query or "finance manager", "Naukri": query or "chartered accountant",
+                "Indeed": query or "finance analyst", "Foundit": query or "finance",
+                "TimesJobs": query or "finance jobs",
+            }
+        },
+        "sales": {
+            "label": "Sales & Business Development",
+            "portals": [
+                {"name": "LinkedIn",   "color": "#0077b5", "icon": "💼", "note": "B2B sales & BD roles"},
+                {"name": "Naukri",     "color": "#ef4444", "icon": "🔴", "note": "Sales executive vacancies"},
+                {"name": "Apna",       "color": "#0891b2", "icon": "🤝", "note": "Field & inside sales — verified"},
+                {"name": "Indeed",     "color": "#003A9B", "icon": "🔍", "note": "Sales listings across India"},
+                {"name": "WorkIndia",  "color": "#0369a1", "icon": "🏢", "note": "Ground-level sales & telecalling"},
+            ],
+            "queries": {
+                "LinkedIn": query or "sales manager", "Naukri": query or "sales executive",
+                "Apna": query or "sales", "Indeed": query or "sales executive",
+                "WorkIndia": query or "sales",
+            }
+        },
+        "design": {
+            "label": "Design & Creative Jobs",
+            "portals": [
+                {"name": "LinkedIn",   "color": "#0077b5", "icon": "💼", "note": "UI/UX and product design"},
+                {"name": "Internshala","color": "#16a34a", "icon": "🌱", "note": "Design internships & freshers"},
+                {"name": "Naukri",     "color": "#ef4444", "icon": "🔴", "note": "Graphic & UX designer roles"},
+                {"name": "Hirist",     "color": "#0f172a", "icon": "💻", "note": "Product & UI design roles"},
+                {"name": "Indeed",     "color": "#003A9B", "icon": "🔍", "note": "Creative & design vacancies"},
+            ],
+            "queries": {
+                "LinkedIn": query or "UI UX designer", "Internshala": query or "graphic design intern",
+                "Naukri": query or "graphic designer", "Hirist": query or "product designer",
+                "Indeed": query or "UX designer",
+            }
+        },
+        "hr": {
+            "label": "HR & People Operations",
+            "portals": [
+                {"name": "LinkedIn", "color": "#0077b5", "icon": "💼", "note": "HR business partner & talent roles"},
+                {"name": "Naukri",   "color": "#ef4444", "icon": "🔴", "note": "HR manager & recruiter vacancies"},
+                {"name": "Indeed",   "color": "#003A9B", "icon": "🔍", "note": "HR generalist & payroll jobs"},
+                {"name": "Shine",    "color": "#7c3aed", "icon": "✨", "note": "HR & talent acquisition roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "HR manager", "Naukri": query or "human resources",
+                "Indeed": query or "HR generalist", "Shine": query or "HR recruiter",
+            }
+        },
+        "operations": {
+            "label": "Operations & Supply Chain",
+            "portals": [
+                {"name": "LinkedIn", "color": "#0077b5", "icon": "💼", "note": "Operations manager roles"},
+                {"name": "Naukri",   "color": "#ef4444", "icon": "🔴", "note": "Supply chain & procurement"},
+                {"name": "Indeed",   "color": "#003A9B", "icon": "🔍", "note": "Operations & logistics listings"},
+                {"name": "Foundit",  "color": "#9333ea", "icon": "🔮", "note": "Ops & warehouse management"},
+            ],
+            "queries": {
+                "LinkedIn": query or "operations manager", "Naukri": query or "supply chain",
+                "Indeed": query or "operations manager", "Foundit": query or "operations",
+            }
+        },
+        "internship": {
+            "label": "Internships & Freshers",
+            "portals": [
+                {"name": "Internshala",   "color": "#16a34a", "icon": "🌱", "note": "India's #1 internship platform"},
+                {"name": "LinkedIn",      "color": "#0077b5", "icon": "💼", "note": "Corporate internship programmes"},
+                {"name": "Freshersworld", "color": "#059669", "icon": "🎓", "note": "Entry-level & fresher jobs"},
+                {"name": "Naukri",        "color": "#ef4444", "icon": "🔴", "note": "Fresher & campus placements"},
+                {"name": "Indeed",        "color": "#003A9B", "icon": "🔍", "note": "Internship listings across India"},
+                {"name": "Apna",          "color": "#0891b2", "icon": "🤝", "note": "Entry-level & first jobs"},
+            ],
+            "queries": {
+                "Internshala": query or "internship", "LinkedIn": query or "internship India",
+                "Freshersworld": query or "fresher jobs", "Naukri": query or "fresher",
+                "Indeed": query or "internship", "Apna": query or "fresher",
+            }
+        },
+        "remote": {
+            "label": "Remote & Work From Home",
+            "portals": [
+                {"name": "LinkedIn",     "color": "#0077b5", "icon": "💼", "note": "Remote-first companies hiring"},
+                {"name": "Internshala",  "color": "#16a34a", "icon": "🌱", "note": "WFH & remote internships"},
+                {"name": "Indeed",       "color": "#003A9B", "icon": "🔍", "note": "Remote jobs across India"},
+                {"name": "Naukri",       "color": "#ef4444", "icon": "🔴", "note": "Work from home listings"},
+                {"name": "Freshersworld","color": "#059669", "icon": "🎓", "note": "Remote freshers jobs"},
+            ],
+            "queries": {
+                "LinkedIn": (query or "remote") + " remote", "Internshala": (query or "work from home"),
+                "Indeed": (query or "remote") + " work from home", "Naukri": (query or "remote") + " work from home",
+                "Freshersworld": query or "remote jobs",
+            }
+        },
+
+        # ── Industry specific ────────────────────────────────────────────────
+        "hotel": {
+            "label": "Hotel & Hospitality Jobs",
+            "portals": [
+                {"name": "LinkedIn",   "color": "#0077b5", "icon": "💼", "note": "5-star & luxury hotel openings"},
+                {"name": "Naukri",     "color": "#ef4444", "icon": "🔴", "note": "Hotel & resort vacancies India"},
+                {"name": "Indeed",     "color": "#003A9B", "icon": "🔍", "note": "Hospitality jobs across cities"},
+                {"name": "Apna",       "color": "#0891b2", "icon": "🤝", "note": "Hotel staff & F&B roles"},
+                {"name": "Shine",      "color": "#7c3aed", "icon": "✨", "note": "Hospitality management roles"},
+                {"name": "TimesJobs",  "color": "#dc2626", "icon": "📰", "note": "Verified hotel chain openings"},
+                {"name": "WorkIndia",  "color": "#0369a1", "icon": "🏢", "note": "Housekeeping & hotel staff"},
+                {"name": "Foundit",    "color": "#9333ea", "icon": "🔮", "note": "Hotel management roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "hotel manager", "Naukri": query or "hotel jobs",
+                "Indeed": query or "hospitality jobs", "Apna": query or "hotel staff",
+                "Shine": query or "hotel management", "TimesJobs": query or "hotel jobs",
+                "WorkIndia": query or "hotel housekeeping", "Foundit": query or "hotel manager",
+            }
+        },
+        "airport": {
+            "label": "Airport & Aviation Jobs",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Airlines & airport operations"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Aviation & ground staff roles"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Cabin crew & airline listings"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Airport & aviation openings"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Airline & ground ops roles"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Aviation management roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "airport operations", "Naukri": query or "aviation jobs",
+                "Indeed": query or "cabin crew", "Shine": query or "airport jobs",
+                "TimesJobs": query or "aviation jobs", "Foundit": query or "ground staff airport",
+            }
+        },
+        "healthcare": {
+            "label": "Healthcare & Medical Jobs",
+            "portals": [
+                {"name": "LinkedIn",      "color": "#0077b5", "icon": "💼", "note": "Doctors, specialists & healthcare mgmt"},
+                {"name": "Naukri",        "color": "#ef4444", "icon": "🔴", "note": "Hospital & clinical vacancies"},
+                {"name": "Indeed",        "color": "#003A9B", "icon": "🔍", "note": "Nursing, pharma & allied health"},
+                {"name": "Apna",          "color": "#0891b2", "icon": "🤝", "note": "Nurse & hospital staff roles"},
+                {"name": "Freshersworld", "color": "#059669", "icon": "🎓", "note": "Medical fresher & intern jobs"},
+                {"name": "TimesJobs",     "color": "#dc2626", "icon": "📰", "note": "Verified healthcare openings"},
+                {"name": "Shine",         "color": "#7c3aed", "icon": "✨", "note": "Healthcare management roles"},
+                {"name": "WorkIndia",     "color": "#0369a1", "icon": "🏢", "note": "Clinic & hospital staff"},
+            ],
+            "queries": {
+                "LinkedIn": query or "doctor", "Naukri": query or "nurse jobs",
+                "Indeed": query or "hospital staff nurse", "Apna": query or "nurse",
+                "Freshersworld": query or "medical fresher", "TimesJobs": query or "healthcare",
+                "Shine": query or "medical officer", "WorkIndia": query or "hospital staff",
+            }
+        },
+        "education": {
+            "label": "Education & EdTech Jobs",
+            "portals": [
+                {"name": "LinkedIn",      "color": "#0077b5", "icon": "💼", "note": "EdTech & academic management"},
+                {"name": "Naukri",        "color": "#ef4444", "icon": "🔴", "note": "Teacher & faculty vacancies"},
+                {"name": "Indeed",        "color": "#003A9B", "icon": "🔍", "note": "School, college & tutor roles"},
+                {"name": "Freshersworld", "color": "#059669", "icon": "🎓", "note": "Teaching fresher & B.Ed roles"},
+                {"name": "TimesJobs",     "color": "#dc2626", "icon": "📰", "note": "Verified education openings"},
+                {"name": "Shine",         "color": "#7c3aed", "icon": "✨", "note": "EdTech & academic roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "teacher", "Naukri": query or "school teacher",
+                "Indeed": query or "teacher jobs", "Freshersworld": query or "teaching jobs fresher",
+                "TimesJobs": query or "teacher", "Shine": query or "lecturer",
+            }
+        },
+        "retail": {
+            "label": "Retail & Showroom Jobs",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Retail management & brand roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Store manager & retail staff"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Retail & showroom vacancies"},
+                {"name": "Apna",      "color": "#0891b2", "icon": "🤝", "note": "Sales & retail floor staff"},
+                {"name": "WorkIndia", "color": "#0369a1", "icon": "🏢", "note": "Retail & counter sales"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Retail chain openings"},
+            ],
+            "queries": {
+                "LinkedIn": query or "retail manager", "Naukri": query or "store manager",
+                "Indeed": query or "retail sales", "Apna": query or "retail sales",
+                "WorkIndia": query or "showroom sales", "Shine": query or "retail jobs",
+            }
+        },
+        "logistics": {
+            "label": "Logistics & Delivery Jobs",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Supply chain & logistics management"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Warehouse & operations roles"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Delivery, driver & fleet jobs"},
+                {"name": "Apna",      "color": "#0891b2", "icon": "🤝", "note": "Delivery executive & driver jobs"},
+                {"name": "WorkIndia", "color": "#0369a1", "icon": "🏢", "note": "Last-mile delivery & logistics"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Logistics & supply chain roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "supply chain manager", "Naukri": query or "logistics manager",
+                "Indeed": query or "delivery driver", "Apna": query or "delivery executive",
+                "WorkIndia": query or "delivery boy", "Shine": query or "logistics jobs",
+            }
+        },
+        "manufacturing": {
+            "label": "Manufacturing & Production Jobs",
+            "portals": [
+                {"name": "LinkedIn", "color": "#0077b5", "icon": "💼", "note": "Plant & production management"},
+                {"name": "Naukri",   "color": "#ef4444", "icon": "🔴", "note": "Manufacturing engineer vacancies"},
+                {"name": "Indeed",   "color": "#003A9B", "icon": "🔍", "note": "Factory & production listings"},
+                {"name": "Shine",    "color": "#7c3aed", "icon": "✨", "note": "Industrial & manufacturing roles"},
+                {"name": "Foundit",  "color": "#9333ea", "icon": "🔮", "note": "Production & quality roles"},
+                {"name": "TimesJobs","color": "#dc2626", "icon": "📰", "note": "Verified manufacturing openings"},
+            ],
+            "queries": {
+                "LinkedIn": query or "production engineer", "Naukri": query or "manufacturing engineer",
+                "Indeed": query or "production supervisor", "Shine": query or "manufacturing jobs",
+                "Foundit": query or "quality engineer", "TimesJobs": query or "plant manager",
+            }
+        },
+        "security": {
+            "label": "Security & Facility Jobs",
+            "portals": [
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Security guard & officer roles"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Security & facility management"},
+                {"name": "Apna",      "color": "#0891b2", "icon": "🤝", "note": "Security staff & watchman jobs"},
+                {"name": "WorkIndia", "color": "#0369a1", "icon": "🏢", "note": "Security & housekeeping roles"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Security supervisor vacancies"},
+            ],
+            "queries": {
+                "Naukri": query or "security guard", "Indeed": query or "security officer",
+                "Apna": query or "security guard", "WorkIndia": query or "security job",
+                "Shine": query or "security supervisor",
+            }
+        },
+        "bluecollar": {
+            "label": "Blue Collar & Skilled Trades",
+            "portals": [
+                {"name": "Apna",          "color": "#0891b2", "icon": "🤝", "note": "Electrician, plumber & skilled trades"},
+                {"name": "WorkIndia",     "color": "#0369a1", "icon": "🏢", "note": "ITI & diploma trade jobs"},
+                {"name": "Naukri",        "color": "#ef4444", "icon": "🔴", "note": "Technician & skilled worker roles"},
+                {"name": "Indeed",        "color": "#003A9B", "icon": "🔍", "note": "Blue collar & trade listings"},
+                {"name": "Freshersworld", "color": "#059669", "icon": "🎓", "note": "ITI & diploma fresher jobs"},
+            ],
+            "queries": {
+                "Apna": query or "electrician", "WorkIndia": query or "ITI jobs",
+                "Naukri": query or "technician jobs", "Indeed": query or "electrician plumber",
+                "Freshersworld": query or "ITI fresher",
+            }
+        },
+        "media": {
+            "label": "Media, Content & PR Jobs",
+            "portals": [
+                {"name": "LinkedIn",   "color": "#0077b5", "icon": "💼", "note": "Media, journalism & PR roles"},
+                {"name": "Internshala","color": "#16a34a", "icon": "🌱", "note": "Content & media internships"},
+                {"name": "Naukri",     "color": "#ef4444", "icon": "🔴", "note": "Content writer & journalist jobs"},
+                {"name": "Indeed",     "color": "#003A9B", "icon": "🔍", "note": "Media & communication listings"},
+                {"name": "Shine",      "color": "#7c3aed", "icon": "✨", "note": "PR & media management roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "content writer", "Internshala": query or "content writing intern",
+                "Naukri": query or "journalist", "Indeed": query or "content writer",
+                "Shine": query or "media jobs",
+            }
+        },
+        "legal": {
+            "label": "Legal & Compliance Jobs",
+            "portals": [
+                {"name": "LinkedIn", "color": "#0077b5", "icon": "💼", "note": "Corporate legal & compliance roles"},
+                {"name": "Naukri",   "color": "#ef4444", "icon": "🔴", "note": "Lawyer & legal advisor vacancies"},
+                {"name": "Indeed",   "color": "#003A9B", "icon": "🔍", "note": "Legal & company secretary roles"},
+                {"name": "Shine",    "color": "#7c3aed", "icon": "✨", "note": "Legal counsel & paralegal jobs"},
+                {"name": "Foundit",  "color": "#9333ea", "icon": "🔮", "note": "Legal & compliance specialists"},
+            ],
+            "queries": {
+                "LinkedIn": query or "corporate lawyer", "Naukri": query or "legal advisor",
+                "Indeed": query or "lawyer jobs", "Shine": query or "legal counsel",
+                "Foundit": query or "compliance officer",
+            }
+        },
+        "realestate": {
+            "label": "Real Estate & Civil Jobs",
+            "portals": [
+                {"name": "LinkedIn", "color": "#0077b5", "icon": "💼", "note": "Real estate & property management"},
+                {"name": "Naukri",   "color": "#ef4444", "icon": "🔴", "note": "Site engineer & civil vacancies"},
+                {"name": "Indeed",   "color": "#003A9B", "icon": "🔍", "note": "Real estate agent & civil listings"},
+                {"name": "Shine",    "color": "#7c3aed", "icon": "✨", "note": "Property consultant roles"},
+                {"name": "TimesJobs","color": "#dc2626", "icon": "📰", "note": "Civil & real estate openings"},
+            ],
+            "queries": {
+                "LinkedIn": query or "real estate manager", "Naukri": query or "civil engineer",
+                "Indeed": query or "real estate agent", "Shine": query or "property consultant",
+                "TimesJobs": query or "site engineer",
+            }
+        },
+    }
+
+    # Build URL for each portal
+    URL_BUILDERS = {
+        "LinkedIn":      lambda q, l: make_linkedin_url(q, l),
+        "Naukri":        lambda q, l: make_naukri_url(q, l),
+        "Indeed":        lambda q, l: make_indeed_url(q, l),
+        "Internshala":   lambda q, l: make_internshala_url(q),
+        "Shine":         lambda q, l: make_shine_url(q, l),
+        "Foundit":       lambda q, l: make_foundit_url(q, l),
+        "Apna":          lambda q, l: make_apna_url(q),
+        "Freshersworld": lambda q, l: make_freshersworld_url(q),
+        "TimesJobs":     lambda q, l: make_timesjobs_url(q, l),
+        "Hirist":        lambda q, l: make_hirist_url(q),
+        "NaukriGulf":    lambda q, l: make_naukrigulf_url(q),
+        "WorkIndia":     lambda q, l: make_workindia_url(q),
+    }
+
+    config = cat_config.get(category)
+    if not config:
+        return []
+
+    cards = []
+    for portal in config["portals"]:
+        name    = portal["name"]
+        q       = config["queries"].get(name, query or category)
+        builder = URL_BUILDERS.get(name)
+        url     = builder(q, location) if builder else f"https://www.google.com/search?q={urllib.parse.quote(q + ' jobs india')}"
+        cards.append({
+            "portal":      name,
+            "color":       portal["color"],
+            "icon":        portal["icon"],
+            "note":        portal["note"],
+            "search_url":  url,
+            "query_label": q,
+            "category":    category,
+            "match_score": 0,
+            "match_reason": "",
+        })
+    return cards
+
+
+def get_general_search_cards(query, location, sources):
+    """
+    For a free-text search, return one portal card per selected source
+    with a live search URL for that query.
+    """
+    URL_BUILDERS = {
+        "LinkedIn":      make_linkedin_url,
+        "Naukri":        make_naukri_url,
+        "Indeed":        make_indeed_url,
+        "Internshala":   lambda q, l: make_internshala_url(q),
+        "Shine":         make_shine_url,
+        "Foundit":       make_foundit_url,
+        "Apna":          lambda q, l: make_apna_url(q),
+        "Freshersworld": lambda q, l: make_freshersworld_url(q),
+        "TimesJobs":     make_timesjobs_url,
+        "Hirist":        lambda q, l: make_hirist_url(q),
+        "NaukriGulf":    lambda q, l: make_naukrigulf_url(q),
+        "WorkIndia":     lambda q, l: make_workindia_url(q),
+    }
+    PORTAL_META = {
+        "LinkedIn":      {"color": "#0077b5", "icon": "💼", "note": "Professional network — MNCs & startups"},
+        "Naukri":        {"color": "#ef4444", "icon": "🔴", "note": "India's largest job board"},
+        "Indeed":        {"color": "#003A9B", "icon": "🔍", "note": "Global job search aggregator"},
+        "Internshala":   {"color": "#16a34a", "icon": "🌱", "note": "Internships & entry-level roles"},
+        "Shine":         {"color": "#7c3aed", "icon": "✨", "note": "Mid & senior level vacancies"},
+        "Foundit":       {"color": "#9333ea", "icon": "🔮", "note": "Monster India — broad listings"},
+        "Apna":          {"color": "#0891b2", "icon": "🤝", "note": "Blue collar & ground-level jobs"},
+        "Freshersworld": {"color": "#059669", "icon": "🎓", "note": "Freshers & campus placements"},
+        "TimesJobs":     {"color": "#dc2626", "icon": "📰", "note": "Times Group verified listings"},
+        "Hirist":        {"color": "#0f172a", "icon": "💻", "note": "Tech-only quality roles"},
+        "NaukriGulf":    {"color": "#b45309", "icon": "🌍", "note": "Gulf & Middle East openings"},
+        "WorkIndia":     {"color": "#0369a1", "icon": "🏢", "note": "Blue collar & semi-skilled"},
+    }
+    cards = []
+    for src in sources:
+        meta    = PORTAL_META.get(src, {"color": "#6b7280", "icon": "🔍", "note": ""})
+        builder = URL_BUILDERS.get(src)
+        url     = builder(query, location) if builder else f"https://www.google.com/search?q={urllib.parse.quote(query + ' jobs ' + location)}"
+        cards.append({
+            "portal":       src,
+            "color":        meta["color"],
+            "icon":         meta["icon"],
+            "note":         meta["note"],
+            "search_url":   url,
+            "query_label":  query,
+            "category":     "general",
+            "match_score":  0,
+            "match_reason": "",
+        })
+    return cards
+
+
+def ai_match_score_portal(portal_name, category_or_query, skills):
+    """Score how relevant a portal is for the user's skills."""
+    if not skills:
+        return 0, "Upload resume for match scores"
+    try:
+        raw = ai_call(
+            [{"role": "system", "content": "Return only valid JSON."},
+             {"role": "user", "content":
+              f'How relevant is "{portal_name}" job portal for someone with skills: {", ".join(skills[:8])} '
+              f'looking for "{category_or_query}" jobs in India? '
+              f'Return: {{"score": 75, "reason": "one line reason"}}'}],
+            max_tokens=60
+        )
+        raw  = raw.replace("```json", "").replace("```", "").strip()
+        data = json.loads(raw)
+        return data.get("score", 50), data.get("reason", "")
+    except:
+        return 50, "General match"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GOVT JOBS — Official portals only
+# ─────────────────────────────────────────────────────────────────────────────
+
+GOVT_OFFICIAL_PORTALS = [
+    # Central
+    {"name": "NCS Portal",         "url": "https://www.ncs.gov.in/jobseeker/",                      "category": "central",  "color": "#FF6B35", "icon": "🏛️", "desc": "National Career Service — official govt job portal with lakhs of live vacancies"},
+    {"name": "SSC",                 "url": "https://ssc.nic.in/",                                    "category": "central",  "color": "#FF6B35", "icon": "📋", "desc": "Staff Selection Commission — CGL, CHSL, MTS, GD Constable and more"},
+    {"name": "UPSC",                "url": "https://upsc.gov.in/",                                   "category": "central",  "color": "#FF6B35", "icon": "🎓", "desc": "Civil Services, IAS, IPS, IFS, Engineering Services & Group A/B posts"},
+    {"name": "Employment News",     "url": "https://employmentnews.gov.in/",                         "category": "central",  "color": "#FF6B35", "icon": "📰", "desc": "Official weekly gazette of all central & state government recruitments"},
+    # Railway
+    {"name": "Indian Railways RRB", "url": "https://indianrailways.gov.in/railwayboard/view_section.jsp?lang=0&id=0,1,304,366,533", "category": "railway", "color": "#4ECDC4", "icon": "🚂", "desc": "RRB NTPC, Group D, ALP, JE and all railway recruitment notifications"},
+    {"name": "RRB Official",        "url": "https://www.rrbcdg.gov.in/",                             "category": "railway",  "color": "#4ECDC4", "icon": "🚂", "desc": "Railway Recruitment Board — centralised recruitment for all zones"},
+    # Banking
+    {"name": "IBPS",                "url": "https://www.ibps.in/",                                   "category": "banking",  "color": "#45B7D1", "icon": "🏦", "desc": "Bank PO, Clerk, SO and RRB officer recruitment across public sector banks"},
+    {"name": "SBI Careers",         "url": "https://bank.sbi/web/careers/current-openings",          "category": "banking",  "color": "#45B7D1", "icon": "🏦", "desc": "State Bank of India — PO, Clerk, Specialist Officer current openings"},
+    {"name": "RBI Opportunities",   "url": "https://opportunities.rbi.org.in/Scripts/BS_ViewBulletin.aspx", "category": "banking", "color": "#45B7D1", "icon": "🏦", "desc": "Reserve Bank of India Grade B, Assistant and officer vacancies"},
+    {"name": "NABARD",              "url": "https://www.nabard.org/content1.aspx?id=572&catid=23&mid=530", "category": "banking", "color": "#45B7D1", "icon": "🏦", "desc": "National Bank — Grade A, B officer and development assistant posts"},
+    # Defence
+    {"name": "Join Indian Army",    "url": "https://joinindianarmy.nic.in/",                         "category": "defence",  "color": "#96CEB4", "icon": "🪖", "desc": "Indian Army — officer, soldier, Agniveer and technical entry recruitment"},
+    {"name": "Join Indian Navy",    "url": "https://www.joinindiannavy.gov.in/",                     "category": "defence",  "color": "#96CEB4", "icon": "⚓", "desc": "Indian Navy — officer, sailor, Agniveer and MR recruitment"},
+    {"name": "Indian Air Force",    "url": "https://afcat.cdac.in/AFCAT/",                           "category": "defence",  "color": "#96CEB4", "icon": "✈️", "desc": "IAF AFCAT — flying, technical and ground duty officer recruitment"},
+    {"name": "DRDO",                "url": "https://www.drdo.gov.in/careers",                        "category": "defence",  "color": "#96CEB4", "icon": "🔬", "desc": "Defence Research — Scientist B, CEPTAM technician and admin posts"},
+    # Teaching
+    {"name": "KVS Recruitment",     "url": "https://kvsangathan.nic.in/RecruitmentNotification",     "category": "teaching", "color": "#f59e0b", "icon": "📚", "desc": "Kendriya Vidyalaya — PRT, TGT, PGT teacher and principal vacancies"},
+    {"name": "NVS Recruitment",     "url": "https://navodaya.gov.in/nvs/en/Recruitment/",            "category": "teaching", "color": "#f59e0b", "icon": "📚", "desc": "Navodaya Vidyalaya — TGT, PGT, female staff nurse and misc posts"},
+    {"name": "CTET",                "url": "https://ctet.nic.in/",                                   "category": "teaching", "color": "#f59e0b", "icon": "📝", "desc": "Central Teacher Eligibility Test — mandatory for KVS/NVS teacher posts"},
+    # Police
+    {"name": "CRPF Recruitment",    "url": "https://crpf.gov.in/recruitment.htm",                   "category": "police",   "color": "#DDA0DD", "icon": "👮", "desc": "Central Reserve Police Force — constable, SI and assistant commandant"},
+    {"name": "BSF Recruitment",     "url": "https://bsf.gov.in/recruitment.html",                   "category": "police",   "color": "#DDA0DD", "icon": "🛡️", "desc": "Border Security Force — constable, head constable and ASI vacancies"},
+    {"name": "CISF Recruitment",    "url": "https://cisfrectt.cisf.gov.in/",                        "category": "police",   "color": "#DDA0DD", "icon": "🔒", "desc": "Central Industrial Security Force — constable and HC posts"},
+    # State
+    {"name": "TNPSC",               "url": "https://www.tnpsc.gov.in/notifications.html",            "category": "state",    "color": "#98D8C8", "icon": "🏢", "desc": "Tamil Nadu PSC — Group 1, 2, 4, VAO, combined engineering services"},
+    {"name": "UPPSC",               "url": "https://uppsc.up.nic.in/",                              "category": "state",    "color": "#98D8C8", "icon": "🏢", "desc": "Uttar Pradesh PSC — PCS, combined state engineering and medical services"},
+    {"name": "MPSC",                "url": "https://mpsc.gov.in/",                                  "category": "state",    "color": "#98D8C8", "icon": "🏢", "desc": "Maharashtra PSC — Rajyaseva, Police Sub Inspector, Clerk and other posts"},
+    {"name": "KPSC",                "url": "https://kpsc.kar.nic.in/",                              "category": "state",    "color": "#98D8C8", "icon": "🏢", "desc": "Karnataka PSC — Gazetted Probationers, FDA, SDA and Group C posts"},
 ]
 
-# ── Category-specific searches ─────────────────────────────────────────────────
-CATEGORY_SEARCHES = {
-    "hotel": [
-        {"query": "hotel jobs india",              "source_color": "#f59e0b"},
-        {"query": "hospitality jobs india",        "source_color": "#f59e0b"},
-        {"query": "front desk hotel india",        "source_color": "#f59e0b"},
-        {"query": "housekeeping supervisor india", "source_color": "#f59e0b"},
-        {"query": "chef jobs india",               "source_color": "#f59e0b"},
-    ],
-    "airport": [
-        {"query": "airport jobs india",            "source_color": "#0ea5e9"},
-        {"query": "ground staff airport india",    "source_color": "#0ea5e9"},
-        {"query": "cabin crew jobs india",         "source_color": "#0ea5e9"},
-        {"query": "aviation jobs india",           "source_color": "#0ea5e9"},
-        {"query": "air hostess jobs india",        "source_color": "#0ea5e9"},
-    ],
-    "healthcare": [
-        {"query": "doctor jobs india",             "source_color": "#ef4444"},
-        {"query": "nurse jobs india",              "source_color": "#ef4444"},
-        {"query": "hospital jobs india",           "source_color": "#ef4444"},
-        {"query": "pharmacist jobs india",         "source_color": "#ef4444"},
-        {"query": "lab technician jobs india",     "source_color": "#ef4444"},
-    ],
-    "education": [
-        {"query": "teacher jobs india",            "source_color": "#8b5cf6"},
-        {"query": "professor jobs india",          "source_color": "#8b5cf6"},
-        {"query": "school teacher india",          "source_color": "#8b5cf6"},
-        {"query": "edtech jobs india",             "source_color": "#8b5cf6"},
-        {"query": "tutor jobs india",              "source_color": "#8b5cf6"},
-    ],
-    "retail": [
-        {"query": "retail jobs india",             "source_color": "#10b981"},
-        {"query": "store manager india",           "source_color": "#10b981"},
-        {"query": "sales associate india",         "source_color": "#10b981"},
-        {"query": "showroom jobs india",           "source_color": "#10b981"},
-    ],
-    "logistics": [
-        {"query": "logistics jobs india",          "source_color": "#6366f1"},
-        {"query": "driver jobs india",             "source_color": "#6366f1"},
-        {"query": "delivery jobs india",           "source_color": "#6366f1"},
-        {"query": "warehouse jobs india",          "source_color": "#6366f1"},
-        {"query": "supply chain jobs india",       "source_color": "#6366f1"},
-    ],
-    "manufacturing": [
-        {"query": "manufacturing jobs india",      "source_color": "#78716c"},
-        {"query": "production engineer india",     "source_color": "#78716c"},
-        {"query": "quality control india",         "source_color": "#78716c"},
-        {"query": "plant manager india",           "source_color": "#78716c"},
-    ],
-    "security": [
-        {"query": "security guard jobs india",     "source_color": "#475569"},
-        {"query": "security supervisor india",     "source_color": "#475569"},
-        {"query": "security officer india",        "source_color": "#475569"},
-    ],
-    "bluecollar": [
-        {"query": "electrician jobs india",        "source_color": "#d97706"},
-        {"query": "plumber jobs india",            "source_color": "#d97706"},
-        {"query": "carpenter jobs india",          "source_color": "#d97706"},
-        {"query": "welder jobs india",             "source_color": "#d97706"},
-        {"query": "mechanic jobs india",           "source_color": "#d97706"},
-    ],
-    "media": [
-        {"query": "journalist jobs india",         "source_color": "#ec4899"},
-        {"query": "content writer jobs india",     "source_color": "#ec4899"},
-        {"query": "video editor jobs india",       "source_color": "#ec4899"},
-        {"query": "media jobs india",              "source_color": "#ec4899"},
-    ],
-    "legal": [
-        {"query": "lawyer jobs india",             "source_color": "#1e3a5f"},
-        {"query": "legal advisor india",           "source_color": "#1e3a5f"},
-        {"query": "company secretary india",       "source_color": "#1e3a5f"},
-        {"query": "compliance officer india",      "source_color": "#1e3a5f"},
-    ],
-    "realestate": [
-        {"query": "real estate jobs india",        "source_color": "#059669"},
-        {"query": "property consultant india",     "source_color": "#059669"},
-        {"query": "site engineer india",           "source_color": "#059669"},
-        {"query": "civil engineer jobs india",     "source_color": "#059669"},
-    ],
-}
-
-GOVT_RSS_FEEDS_PAGE = {
-    "sarkari_result":  {"url": "https://www.sarkariresult.com/feed/",                                    "label": "Sarkari Result",  "icon": "🏛️"},
-    "employment_news": {"url": "https://www.employmentnews.gov.in/rss/rss.xml",                          "label": "Employment News", "icon": "📰"},
-    "upsc":            {"url": "https://www.upsc.gov.in/rss.xml",                                        "label": "UPSC",            "icon": "🎓"},
-    "ssc":             {"url": "https://ssc.nic.in/SSCFileServer/PortalManagement/UploadedFiles/rss.xml","label": "SSC",             "icon": "📋"},
-    "railway_rrb":     {"url": "https://rrbcdg.gov.in/rss/recruitment.xml",                              "label": "Railway (RRB)",   "icon": "🚂"},
-    "banking_ibps":    {"url": "https://www.ibps.in/rss.xml",                                            "label": "IBPS / Banking",  "icon": "🏦"},
-    "naukri_govt":     {"url": "https://www.naukri.com/rss/jobs/government-jobs",                        "label": "Naukri Govt",     "icon": "💼"},
-}
-
-CATEGORY_META = {
+GOVT_CATEGORY_META = {
+    "all":      {"label": "All",           "icon": "🔍", "color": "#6C757D"},
     "central":  {"label": "Central Govt",  "icon": "🇮🇳", "color": "#FF6B35"},
     "railway":  {"label": "Railways",      "icon": "🚂",  "color": "#4ECDC4"},
     "banking":  {"label": "Banking / PSU", "icon": "🏦",  "color": "#45B7D1"},
     "defence":  {"label": "Defence",       "icon": "🪖",  "color": "#96CEB4"},
-    "teaching": {"label": "Teaching",      "icon": "📚",  "color": "#FFEAA7"},
+    "teaching": {"label": "Teaching",      "icon": "📚",  "color": "#f59e0b"},
     "police":   {"label": "Police / Para", "icon": "👮",  "color": "#DDA0DD"},
     "state":    {"label": "State Govt",    "icon": "🏢",  "color": "#98D8C8"},
-    "all":      {"label": "All",           "icon": "🔍",  "color": "#6C757D"},
-}
-
-CATEGORY_KEYWORDS = {
-    "railway":  ["railway", "rrb", "rrb-ntpc", "loco pilot", "station master"],
-    "banking":  ["bank", "ibps", "sbi", "rbi", "nabard", "psu"],
-    "defence":  ["army", "navy", "air force", "defence", "crpf", "bsf", "cisf", "nda", "cds"],
-    "teaching": ["teacher", "tgt", "pgt", "lecturer", "professor", "tet", "ctet"],
-    "police":   ["police", "constable", "si", "sub-inspector", "paramilitary"],
-    "state":    ["state", "state psc", "state board", "municipal", "panchayat"],
-    "central":  ["upsc", "ssc", "ias", "ips", "central", "ministry", "government of india"],
 }
 
 
@@ -166,334 +616,6 @@ Resume:{resume_text[:3000]}"""
                    {"role": "user", "content": prompt}])
     raw = raw.replace("```json", "").replace("```", "").strip()
     return json.loads(raw)
-
-def _categorise_govt_job(title, summary):
-    text = (title + " " + summary).lower()
-    for cat, keywords in CATEGORY_KEYWORDS.items():
-        if any(kw in text for kw in keywords):
-            return cat
-    return "central"
-
-HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# JOB SCRAPERS
-# ─────────────────────────────────────────────────────────────────────────────
-
-def search_linkedin_jobs(query, location="India", num=10):
-    jobs = []
-    try:
-        url = f"https://www.linkedin.com/jobs/search/?keywords={urllib.parse.quote(query)}&location={urllib.parse.quote(location)}&f_TPR=r86400"
-        r = requests.get(url, headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="base-card")[:num]:
-            t = card.find("h3", class_="base-search-card__title")
-            c = card.find("h4", class_="base-search-card__subtitle")
-            l = card.find("span", class_="job-search-card__location")
-            a = card.find("a", class_="base-card__full-link")
-            if t and a:
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else location,
-                             "apply_url": a.get("href", "#"),
-                             "source": "LinkedIn", "source_color": "#0077b5"})
-    except: pass
-    return jobs
-
-def search_naukri_jobs(query, location="India", num=10):
-    jobs = []
-    try:
-        slug = query.lower().replace(" ", "-")
-        loc  = location.lower().replace(" ", "-")
-        r = requests.get(f"https://www.naukri.com/{slug}-jobs-in-{loc}",
-                         headers={**HEADERS, "Accept-Language": "en-US"}, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("article", class_="jobTuple")[:num]:
-            t = card.find("a", class_="title")
-            c = card.find("a", class_="subTitle")
-            l = card.find("li", class_="location")
-            if t:
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else location,
-                             "apply_url": t.get("href", f"https://www.naukri.com/{slug}-jobs"),
-                             "source": "Naukri", "source_color": "#ef4444"})
-    except: pass
-    return jobs
-
-def search_indeed_jobs(query, location="India", num=10):
-    jobs = []
-    try:
-        url = f"https://in.indeed.com/jobs?q={urllib.parse.quote(query)}&l={urllib.parse.quote(location)}&fromage=7"
-        r = requests.get(url, headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="job_seen_beacon")[:num]:
-            t = card.find("h2", class_="jobTitle")
-            c = card.find("span", {"data-testid": "company-name"})
-            l = card.find("div", {"data-testid": "text-location"})
-            a = card.find("a", class_="jcs-JobTitle")
-            if t:
-                href = a.get("href", "") if a else ""
-                url2 = f"https://in.indeed.com{href}" if href.startswith("/") else href or f"https://in.indeed.com/jobs?q={urllib.parse.quote(query)}"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else location,
-                             "apply_url": url2,
-                             "source": "Indeed", "source_color": "#003A9B"})
-    except: pass
-    return jobs
-
-def search_internshala_jobs(query, num=10):
-    jobs = []
-    try:
-        slug = urllib.parse.quote(query.lower().replace(" ", "-"))
-        r = requests.get(f"https://internshala.com/jobs/{slug}-jobs",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="individual_internship")[:num]:
-            t = card.find("h3", class_="job-internship-name")
-            c = card.find("p", class_="company-name")
-            l = card.find("p", class_="locations")
-            a = card.find("a", class_="view_detail_button")
-            if t:
-                href = a.get("href", "") if a else ""
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else "India",
-                             "apply_url": f"https://internshala.com{href}" if href else "https://internshala.com/jobs",
-                             "source": "Internshala", "source_color": "#16a34a"})
-    except: pass
-    return jobs
-
-def search_shine_jobs(query, location="India", num=10):
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        l = urllib.parse.quote(location)
-        r = requests.get(f"https://www.shine.com/job-search/{q.lower().replace('%20','-')}-jobs-in-{l.lower().replace('%20','-')}",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="jobCard")[:num]:
-            t = card.find("h3") or card.find("a", class_="jobTitle")
-            c = card.find("span", class_="companyName") or card.find("p", class_="company")
-            a = card.find("a", href=True)
-            if t:
-                href = a["href"] if a else ""
-                url2 = f"https://www.shine.com{href}" if href.startswith("/") else href or "https://www.shine.com"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": location, "apply_url": url2,
-                             "source": "Shine", "source_color": "#7c3aed"})
-    except: pass
-    return jobs
-
-def search_foundit_jobs(query, location="India", num=10):
-    """Foundit (formerly Monster India)"""
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        r = requests.get(f"https://www.foundit.in/srp/results?query={q}&location={urllib.parse.quote(location)}",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="cardContainer")[:num]:
-            t = card.find("h3", class_="jobTitle") or card.find("a", class_="jobTitle")
-            c = card.find("span", class_="companyName")
-            l = card.find("span", class_="location")
-            a = card.find("a", href=True)
-            if t:
-                href = a["href"] if a else ""
-                url2 = f"https://www.foundit.in{href}" if href.startswith("/") else href or "https://www.foundit.in"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else location,
-                             "apply_url": url2,
-                             "source": "Foundit", "source_color": "#9333ea"})
-    except: pass
-    return jobs
-
-def search_apna_jobs(query, num=10):
-    """Apna.co — best for blue collar and field sales"""
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        r = requests.get(f"https://apna.co/jobs?q={q}",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", {"class": lambda c: c and "JobCard" in c})[:num]:
-            t = card.find("h2") or card.find("h3")
-            c = card.find("p")
-            a = card.find("a", href=True)
-            if t:
-                href = a["href"] if a else ""
-                url2 = f"https://apna.co{href}" if href.startswith("/") else href or f"https://apna.co/jobs?q={q}"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": "India", "apply_url": url2,
-                             "source": "Apna", "source_color": "#0891b2"})
-    except: pass
-    return jobs
-
-def search_freshersworld_jobs(query, num=10):
-    """Freshersworld — freshers and entry-level"""
-    jobs = []
-    try:
-        q = query.lower().replace(" ", "-")
-        r = requests.get(f"https://www.freshersworld.com/jobs/jobsearch/{q}-jobs",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="joblist-comp-box")[:num]:
-            t = card.find("h3") or card.find("a", class_="job-title")
-            c = card.find("span", class_="company-name")
-            l = card.find("span", class_="location")
-            a = card.find("a", href=True)
-            if t:
-                href = a["href"] if a else ""
-                url2 = f"https://www.freshersworld.com{href}" if href.startswith("/") else href or "https://www.freshersworld.com"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else "India",
-                             "apply_url": url2,
-                             "source": "Freshersworld", "source_color": "#059669"})
-    except: pass
-    return jobs
-
-def search_timesjobs(query, location="India", num=10):
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        l = urllib.parse.quote(location)
-        r = requests.get(f"https://www.timesjobs.com/candidate/job-search.html?searchType=personalizedSearch&from=submit&txtKeywords={q}&txtLocation={l}",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("li", class_="clearfix job-bx wht-shd-bx")[:num]:
-            t = card.find("h2")
-            c = card.find("h3", class_="joblist-comp-name")
-            l_tag = card.find("span", class_="srp-skills")
-            a = card.find("a", href=True)
-            if t:
-                href = a["href"] if a else ""
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": location, "apply_url": href or "https://www.timesjobs.com",
-                             "source": "TimesJobs", "source_color": "#dc2626"})
-    except: pass
-    return jobs
-
-def search_hirist_jobs(query, num=10):
-    """Hirist — tech-only jobs"""
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        r = requests.get(f"https://www.hirist.tech/s/{q}",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="job-card")[:num]:
-            t = card.find("h2") or card.find("h3")
-            c = card.find("p", class_="company")
-            l = card.find("span", class_="location")
-            a = card.find("a", href=True)
-            if t:
-                href = a["href"] if a else ""
-                url2 = f"https://www.hirist.tech{href}" if href.startswith("/") else href or "https://www.hirist.tech"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else "India",
-                             "apply_url": url2,
-                             "source": "Hirist", "source_color": "#0f172a"})
-    except: pass
-    return jobs
-
-def search_naukrigulf_jobs(query, num=10):
-    """NaukriGulf — Gulf/Middle East jobs"""
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        r = requests.get(f"https://www.naukrigulf.com/{query.lower().replace(' ','-')}-jobs",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", class_="ng-star-inserted")[:num]:
-            t = card.find("a", class_="desig")
-            c = card.find("label", class_="company-name")
-            l = card.find("span", class_="loc-time-wrap")
-            if t:
-                href = t.get("href", "")
-                url2 = f"https://www.naukrigulf.com{href}" if href.startswith("/") else href or "https://www.naukrigulf.com"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": l.text.strip() if l else "Gulf",
-                             "apply_url": url2,
-                             "source": "NaukriGulf", "source_color": "#b45309"})
-    except: pass
-    return jobs
-
-def search_workindia_jobs(query, num=10):
-    """WorkIndia — blue collar & semi-skilled"""
-    jobs = []
-    try:
-        q = urllib.parse.quote(query)
-        r = requests.get(f"https://www.workindia.in/job-search?q={q}",
-                         headers=HEADERS, timeout=8)
-        soup = BeautifulSoup(r.text, "html.parser")
-        for card in soup.find_all("div", {"class": lambda c: c and "job" in c.lower()})[:num]:
-            t = card.find("h2") or card.find("h3") or card.find("p", class_="title")
-            c = card.find("span", class_="company") or card.find("p", class_="company")
-            a = card.find("a", href=True)
-            if t and t.text.strip():
-                href = a["href"] if a else ""
-                url2 = f"https://www.workindia.in{href}" if href.startswith("/") else href or f"https://www.workindia.in/job-search?q={q}"
-                jobs.append({"title": t.text.strip(), "company": c.text.strip() if c else "N/A",
-                             "location": "India", "apply_url": url2,
-                             "source": "WorkIndia", "source_color": "#0369a1"})
-    except: pass
-    return jobs
-
-
-def fetch_govt_rss_jobs(category_filter=None, max_per_feed=25):
-    all_jobs = []
-    for feed_info in GOVT_RSS_FEEDS_LIST:
-        if category_filter and feed_info["category"] != category_filter:
-            continue
-        try:
-            feed = feedparser.parse(feed_info["url"])
-            for entry in feed.entries[:max_per_feed]:
-                all_jobs.append({
-                    "title":        entry.get("title", "Government Job"),
-                    "company":      feed_info["source"],
-                    "location":     "India",
-                    "apply_url":    entry.get("link", "#"),
-                    "source":       feed_info["source"],
-                    "source_color": "#1d4ed8",
-                    "category":     feed_info["category"],
-                    "published":    entry.get("published", ""),
-                })
-        except: pass
-    return all_jobs
-
-def fetch_category_jobs(category, location="India", num_per_query=6):
-    all_jobs = []
-    searches = CATEGORY_SEARCHES.get(category, [])
-    for s in searches[:4]:
-        q     = s["query"]
-        color = s.get("source_color", "#6b7280")
-        for job in search_indeed_jobs(q, location, num=num_per_query):
-            job["category"] = category; job["source_color"] = color; all_jobs.append(job)
-        for job in search_naukri_jobs(q, location, num=num_per_query):
-            job["category"] = category; job["source_color"] = color; all_jobs.append(job)
-        for job in search_shine_jobs(q, location, num=num_per_query):
-            job["category"] = category; job["source_color"] = color; all_jobs.append(job)
-    return all_jobs
-
-def ai_match_score(job_title, company, skills):
-    if not skills:
-        return {"score": 0, "reason": "Upload resume for match scores"}
-    try:
-        raw = ai_call([{"role": "system", "content": "Return only valid JSON."},
-                       {"role": "user", "content": f'Rate match 0-100. Skills:{",".join(skills[:10])} Job:{job_title} at {company}. Return:{{"score":75,"reason":"one line"}}'}],
-                      max_tokens=80)
-        raw = raw.replace("```json", "").replace("```", "").strip()
-        return json.loads(raw)
-    except:
-        return {"score": 50, "reason": "General match"}
-
-def ai_fallback_jobs(query, location):
-    try:
-        raw = ai_call([{"role": "system", "content": "Return only valid JSON array."},
-                       {"role": "user", "content": f'Generate 10 realistic job listings for "{query}" in {location} India. JSON array:[{{"title":"","company":"","location":"City, India","apply_url":"https://linkedin.com/jobs","source":"LinkedIn","source_color":"#0077b5","category":"whitecollar"}}]'}],
-                      max_tokens=1000, temp=0.5)
-        raw = raw.replace("```json", "").replace("```", "").strip()
-        return json.loads(raw)
-    except:
-        return []
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -585,48 +707,30 @@ def upload_resume(request):
 def find_jobs(request):
     if request.method == 'POST':
         data     = json.loads(request.body)
-        query    = data.get('query', '')
-        location = data.get('location', 'India')
+        query    = data.get('query', '').strip()
+        location = data.get('location', 'India').strip() or 'India'
         sources  = data.get('sources', ['LinkedIn','Naukri','Indeed','Internshala','Shine','Foundit','Apna','Freshersworld','TimesJobs','Hirist','NaukriGulf','WorkIndia'])
         category = data.get('category', 'all')
 
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         skills     = json.loads(profile.skills) if profile.skills else []
-        all_jobs   = []
 
-        if category == 'government':
-            all_jobs += fetch_govt_rss_jobs(category_filter='government')
-        elif category == 'banking':
-            all_jobs += fetch_govt_rss_jobs(category_filter='banking')
-        elif category == 'railways':
-            all_jobs += fetch_govt_rss_jobs(category_filter='railways')
-        elif category in CATEGORY_SEARCHES:
-            all_jobs += fetch_category_jobs(category, location)
+        # Get portal cards — always live search links
+        if category and category != 'all':
+            cards = get_portal_cards(category, query, location)
         else:
-            if 'LinkedIn'      in sources: all_jobs += search_linkedin_jobs(query, location)
-            if 'Naukri'        in sources: all_jobs += search_naukri_jobs(query, location)
-            if 'Indeed'        in sources: all_jobs += search_indeed_jobs(query, location)
-            if 'Internshala'   in sources: all_jobs += search_internshala_jobs(query)
-            if 'Shine'         in sources: all_jobs += search_shine_jobs(query, location)
-            if 'Foundit'       in sources: all_jobs += search_foundit_jobs(query, location)
-            if 'Apna'          in sources: all_jobs += search_apna_jobs(query)
-            if 'Freshersworld' in sources: all_jobs += search_freshersworld_jobs(query)
-            if 'TimesJobs'     in sources: all_jobs += search_timesjobs(query, location)
-            if 'Hirist'        in sources: all_jobs += search_hirist_jobs(query)
-            if 'NaukriGulf'    in sources: all_jobs += search_naukrigulf_jobs(query)
-            if 'WorkIndia'     in sources: all_jobs += search_workindia_jobs(query)
-            all_jobs += fetch_govt_rss_jobs(max_per_feed=3)
+            if not query:
+                return JsonResponse({'jobs': [], 'mode': 'search'})
+            cards = get_general_search_cards(query, location, sources)
 
-        if not all_jobs:
-            all_jobs = ai_fallback_jobs(query, location)
+        # AI match score per portal
+        for card in cards:
+            score, reason = ai_match_score_portal(card['portal'], query or category, skills)
+            card['match_score']  = score
+            card['match_reason'] = reason
 
-        for job in all_jobs:
-            m = ai_match_score(job['title'], job.get('company', ''), skills)
-            job['match_score']  = m.get('score', 0)
-            job['match_reason'] = m.get('reason', '')
-
-        all_jobs.sort(key=lambda x: x['match_score'], reverse=True)
-        return JsonResponse({'jobs': all_jobs})
+        cards.sort(key=lambda x: x['match_score'], reverse=True)
+        return JsonResponse({'jobs': cards, 'mode': 'portals'})
 
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     skills = json.loads(profile.skills) if profile.skills else []
@@ -639,76 +743,25 @@ def govt_jobs(request):
     active_category = request.GET.get("category", "all")
     query           = request.GET.get("q", "").strip().lower()
 
-    FALLBACK_JOBS = [
-        {"title": "SSC CGL 2025 — Combined Graduate Level Recruitment",         "summary": "Staff Selection Commission invites applications for Group B and C posts across central government departments.",          "link": "https://ssc.nic.in",                "pub_date": "2025", "source": "SSC",             "source_icon": "📋", "category": "central"},
-        {"title": "UPSC Civil Services 2025 — IAS IPS IFS Recruitment",         "summary": "Union Public Service Commission annual civil services examination for IAS, IPS, IFS and allied services.",               "link": "https://upsc.gov.in",               "pub_date": "2025", "source": "UPSC",            "source_icon": "🎓", "category": "central"},
-        {"title": "IBPS PO 2025 — Probationary Officer Recruitment",            "summary": "Institute of Banking Personnel Selection recruitment for Probationary Officers in public sector banks.",                   "link": "https://ibps.in",                   "pub_date": "2025", "source": "IBPS / Banking",  "source_icon": "🏦", "category": "banking"},
-        {"title": "SBI PO 2025 — State Bank Probationary Officers",             "summary": "State Bank of India recruitment for Probationary Officers in Junior Management Grade Scale I.",                           "link": "https://sbi.co.in/careers",         "pub_date": "2025", "source": "SBI Careers",     "source_icon": "🏦", "category": "banking"},
-        {"title": "RRB NTPC 2025 — Railway Non-Technical Popular Categories",   "summary": "Indian Railways RRB recruitment for NTPC posts including Junior Clerk, Accounts Clerk and more.",                        "link": "https://indianrailways.gov.in",     "pub_date": "2025", "source": "Railway (RRB)",   "source_icon": "🚂", "category": "railway"},
-        {"title": "RRB Group D 2025 — Railway Track Maintainer & Helper Posts", "summary": "Railway Recruitment Board Group D recruitment for Track Maintainer, Helper and Level 1 posts.",                          "link": "https://rrbcdg.gov.in",             "pub_date": "2025", "source": "Railway (RRB)",   "source_icon": "🚂", "category": "railway"},
-        {"title": "Indian Army Agniveer 2025 — Soldier Recruitment",            "summary": "Indian Army recruitment under Agnipath scheme for Agniveer General Duty, Technical and Clerk posts.",                     "link": "https://joinindianarmy.nic.in",     "pub_date": "2025", "source": "Defence",         "source_icon": "🪖", "category": "defence"},
-        {"title": "Indian Navy Agniveer MR 2025 — Matric Recruit",              "summary": "Indian Navy recruitment for Agniveer Matric Recruit posts in Chef, Steward and Hydrographic Survey branches.",           "link": "https://joinindiannavy.gov.in",     "pub_date": "2025", "source": "Defence",         "source_icon": "🪖", "category": "defence"},
-        {"title": "CRPF Constable 2025 — Central Reserve Police Force",         "summary": "CRPF recruitment for Constable Technical and Tradesman posts across various specialisations.",                            "link": "https://crpf.gov.in",               "pub_date": "2025", "source": "Police / Para",   "source_icon": "👮", "category": "police"},
-        {"title": "BSF Head Constable 2025 — Border Security Force",            "summary": "Border Security Force recruitment for Head Constable Radio Operator and Radio Mechanic posts.",                          "link": "https://bsf.gov.in",                "pub_date": "2025", "source": "Police / Para",   "source_icon": "👮", "category": "police"},
-        {"title": "KVS TGT PGT 2025 — Kendriya Vidyalaya Teachers",            "summary": "Kendriya Vidyalaya Sangathan recruitment for Trained Graduate Teachers and Post Graduate Teachers.",                      "link": "https://kvsangathan.nic.in",        "pub_date": "2025", "source": "Teaching",        "source_icon": "📚", "category": "teaching"},
-        {"title": "NVS TGT 2025 — Navodaya Vidyalaya Teachers",                "summary": "Navodaya Vidyalaya Samiti recruitment for Trained Graduate Teachers in various subjects.",                               "link": "https://navodaya.gov.in",           "pub_date": "2025", "source": "Teaching",        "source_icon": "📚", "category": "teaching"},
-        {"title": "TNPSC Group 2 2025 — Tamil Nadu Public Service Commission",  "summary": "TNPSC recruitment for Group 2 posts including Deputy Commercial Tax Officer, Revenue Divisional Officer.",              "link": "https://tnpsc.gov.in",              "pub_date": "2025", "source": "State Govt",      "source_icon": "🏢", "category": "state"},
-        {"title": "TNPSC Group 4 2025 — VAO and Junior Assistant Posts",        "summary": "TNPSC Village Administrative Officer and Junior Assistant recruitment across Tamil Nadu.",                                "link": "https://tnpsc.gov.in",              "pub_date": "2025", "source": "State Govt",      "source_icon": "🏢", "category": "state"},
-        {"title": "NCS Portal — National Career Service — Latest Govt Jobs",    "summary": "Browse thousands of verified government and public sector jobs across India on the official NCS portal.",                "link": "https://www.ncs.gov.in",            "pub_date": "2025", "source": "NCS Portal",      "source_icon": "🏛️", "category": "central"},
-        {"title": "Employment News — Latest Recruitment Notifications 2025",    "summary": "Official Employment News listing all central and state government recruitment notifications.",                           "link": "https://employmentnews.gov.in",     "pub_date": "2025", "source": "Employment News", "source_icon": "📰", "category": "central"},
-        {"title": "RBI Grade B 2025 — Reserve Bank of India Officers",          "summary": "Reserve Bank of India recruitment for Grade B officers in General, DEPR and DSIM departments.",                         "link": "https://rbi.org.in/careers",        "pub_date": "2025", "source": "IBPS / Banking",  "source_icon": "🏦", "category": "banking"},
-        {"title": "NABARD Grade A 2025 — Agriculture Development Bank",         "summary": "National Bank for Agriculture and Rural Development recruitment for Assistant Manager Grade A.",                         "link": "https://nabard.org",                "pub_date": "2025", "source": "IBPS / Banking",  "source_icon": "🏦", "category": "banking"},
-        {"title": "SSC CHSL 2025 — Combined Higher Secondary Level",            "summary": "SSC recruitment for LDC, JSA, PA, SA and DEO posts for Class 12 pass candidates.",                                      "link": "https://ssc.nic.in",                "pub_date": "2025", "source": "SSC",             "source_icon": "📋", "category": "central"},
-        {"title": "DRDO Scientist B 2025 — Defence Research Recruitment",       "summary": "Defence Research and Development Organisation recruitment for Scientist B posts in technical disciplines.",               "link": "https://drdo.gov.in",               "pub_date": "2025", "source": "Defence",         "source_icon": "🪖", "category": "defence"},
-    ]
-
-    all_jobs = list(FALLBACK_JOBS)
-    import socket; socket.setdefaulttimeout(3)
-    for feed_meta in GOVT_RSS_FEEDS_PAGE.values():
-        try:
-            feed = feedparser.parse(feed_meta["url"])
-            for entry in feed.entries[:25]:
-                title   = getattr(entry, "title", "")
-                summary = getattr(entry, "summary", "")
-                if title and title != "Untitled":
-                    all_jobs.append({
-                        "title":       title,
-                        "summary":     summary[:200] + "…" if len(summary) > 200 else summary,
-                        "link":        getattr(entry, "link", "#"),
-                        "pub_date":    getattr(entry, "published", ""),
-                        "source":      feed_meta["label"],
-                        "source_icon": feed_meta["icon"],
-                        "category":    _categorise_govt_job(title, summary),
-                    })
-        except: pass
+    portals = list(GOVT_OFFICIAL_PORTALS)
 
     if active_category != "all":
-        all_jobs = [j for j in all_jobs if j["category"] == active_category]
+        portals = [p for p in portals if p["category"] == active_category]
     if query:
-        all_jobs = [j for j in all_jobs if query in j["title"].lower() or query in j["summary"].lower()]
+        portals = [p for p in portals if query in p["name"].lower() or query in p["desc"].lower()]
 
-    # Build a flat list of (key, meta, count) so the template never needs dict[variable_key]
-    all_count = len(all_jobs)
+    # Build categories list with counts
     categories_list = []
-    for cat_key, meta in CATEGORY_META.items():
-        if cat_key == "all":
-            count = all_count
-        else:
-            count = sum(1 for j in all_jobs if j["category"] == cat_key)
-        categories_list.append({
-            "key":    cat_key,
-            "label":  meta["label"],
-            "icon":   meta["icon"],
-            "color":  meta["color"],
-            "count":  count,
-        })
+    for key, meta in GOVT_CATEGORY_META.items():
+        count = len(GOVT_OFFICIAL_PORTALS) if key == "all" else sum(1 for p in GOVT_OFFICIAL_PORTALS if p["category"] == key)
+        categories_list.append({"key": key, "label": meta["label"], "icon": meta["icon"], "color": meta["color"], "count": count})
 
     return render(request, "core/govt_jobs.html", {
-        "jobs":            all_jobs,
+        "portals":         portals,
         "categories_list": categories_list,
         "active_category": active_category,
         "query":           query,
-        "total":           all_count,
+        "total":           len(portals),
     })
 
 @login_required
@@ -717,10 +770,14 @@ def save_job(request):
     if request.method == 'POST':
         data = json.loads(request.body)
         SavedJob.objects.get_or_create(
-            user=request.user, apply_url=data.get('apply_url'),
-            defaults={'job_title': data.get('title',''), 'company': data.get('company',''),
-                      'location': data.get('location',''), 'source': data.get('source',''),
-                      'match_score': data.get('match_score', 0)}
+            user=request.user, apply_url=data.get('apply_url', data.get('search_url', '')),
+            defaults={
+                'job_title':   data.get('query_label', data.get('title', '')),
+                'company':     data.get('portal', data.get('company', '')),
+                'location':    data.get('location', ''),
+                'source':      data.get('portal', data.get('source', '')),
+                'match_score': data.get('match_score', 0),
+            }
         )
         return JsonResponse({'saved': True})
 
@@ -742,7 +799,7 @@ def generate_cover_letter(request):
               f"Write a 3-paragraph professional cover letter for {name} applying for "
               f"{data.get('job_title')} at {data.get('company')}. "
               f"Skills: {', '.join(skills[:10])}. Experience: {profile.experience_years} years. "
-              f"ATS-friendly, confident but not over the top."}],
+              f"ATS-friendly, confident, not over the top."}],
             max_tokens=600, temp=0.6)
         return JsonResponse({'cover_letter': text})
 
@@ -836,7 +893,6 @@ def tracker_delete(request, pk):
 def resume_tips(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     tips = None; error = None
-
     if request.method == 'POST':
         if not profile.resume_text:
             error = "No resume found. Please upload your resume first."
@@ -859,7 +915,6 @@ Priority: "high","medium","low". Resume:\n{profile.resume_text[:4000]}"""
                 error = "AI returned unexpected format — please try again."
             except Exception as e:
                 error = f"Something went wrong: {str(e)}"
-
     return render(request, 'core/resume_tips.html', {
         'profile': profile, 'tips': tips, 'error': error,
         'has_resume': bool(profile.resume_text),
@@ -876,10 +931,9 @@ def post_job(request):
     KEY_ID  = os.environ.get("RAZORPAY_KEY_ID", "")
     KEY_SEC = os.environ.get("RAZORPAY_KEY_SECRET", "")
     PRICE   = 99900
-
     if request.method == 'POST':
         try:
-            razorpay.Client(auth=(KEY_ID,KEY_SEC)).utility.verify_payment_signature({
+            razorpay.Client(auth=(KEY_ID, KEY_SEC)).utility.verify_payment_signature({
                 'razorpay_order_id':   request.POST.get('razorpay_order_id',''),
                 'razorpay_payment_id': request.POST.get('razorpay_payment_id',''),
                 'razorpay_signature':  request.POST.get('razorpay_signature',''),
@@ -887,7 +941,6 @@ def post_job(request):
         except:
             messages.error(request, 'Payment verification failed.')
             return redirect('post_job')
-
         job = JobPosting.objects.create(
             hirer=request.user,
             title=request.POST.get('title','').strip(),
@@ -907,13 +960,11 @@ def post_job(request):
         )
         messages.success(request, 'Job posted successfully!')
         return redirect('hirer_dashboard')
-
     try:
-        order = razorpay.Client(auth=(KEY_ID,KEY_SEC)).order.create({'amount':PRICE,'currency':'INR','payment_capture':1})
+        order = razorpay.Client(auth=(KEY_ID, KEY_SEC)).order.create({'amount': PRICE, 'currency': 'INR', 'payment_capture': 1})
         razorpay_order_id = order['id']
     except:
         razorpay_order_id = ''
-
     return render(request, 'core/post_job.html', {
         'razorpay_key_id': KEY_ID, 'razorpay_order_id': razorpay_order_id, 'price': '999',
     })
