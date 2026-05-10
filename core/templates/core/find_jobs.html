@@ -4,70 +4,107 @@
 {% block page_title %}Find Jobs{% endblock %}
 {% block extra_css %}
 <style>
+/* ── Search bar ── */
 .search-bar{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-end}
 .search-field{flex:1;min-width:200px}
-.search-field label{display:block;font-size:.8rem;font-weight:500;color:var(--muted);margin-bottom:.4rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.search-field label{display:block;font-size:.78rem;font-weight:500;color:var(--muted);margin-bottom:.4rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
 .search-field input{width:100%;padding:.75rem 1rem;border:1px solid var(--border);border-radius:8px;font-family:'Outfit',sans-serif;font-size:.95rem;background:var(--paper)}
 .search-field input:focus{outline:none;border-color:var(--accent)}
-.sources{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
-.source-btn{padding:.4rem 1rem;border:1px solid var(--border);border-radius:20px;font-size:.82rem;cursor:pointer;font-family:'Outfit',sans-serif;background:var(--card);transition:all .2s;display:flex;align-items:center;gap:.4rem}
-.source-btn.active{color:#fff;border-color:transparent}
 .search-btn{padding:.8rem 2rem;background:var(--ink);color:#fff;border:none;border-radius:8px;font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:500;cursor:pointer;transition:background .2s;white-space:nowrap}
 .search-btn:hover{background:var(--accent)}
+
+/* ── Source toggles ── */
+.sources-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.sources-label{font-size:.75rem;font-weight:500;color:var(--muted);margin-bottom:.6rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.sources-grid{display:flex;flex-wrap:wrap;gap:.4rem}
+.source-btn{padding:.35rem .85rem;border:1.5px solid var(--border);border-radius:20px;font-size:.78rem;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:500;background:var(--card);transition:all .18s;color:var(--muted)}
+.source-btn.active{color:#fff;border-color:transparent}
+
+/* ── Category chips ── */
+.cat-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.cat-section-label{font-size:.75rem;font-weight:500;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.cat-row{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}
+.cat-row:last-child{margin-bottom:0}
+.cat-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .9rem;border:1.5px solid var(--border);border-radius:20px;font-size:.8rem;font-family:'Outfit',sans-serif;font-weight:500;color:var(--muted);background:var(--card);cursor:pointer;transition:all .18s;white-space:nowrap;text-decoration:none}
+.cat-chip:hover,.cat-chip.active{color:#fff;border-color:transparent}
+.cat-chip.active{font-weight:600}
+
+/* category accent colours */
+.cat-chip[data-cat="all"]:hover,.cat-chip[data-cat="all"].active{background:#2563eb}
+.cat-chip[data-cat="tech"]:hover,.cat-chip[data-cat="tech"].active{background:#7c3aed}
+.cat-chip[data-cat="data"]:hover,.cat-chip[data-cat="data"].active{background:#0891b2}
+.cat-chip[data-cat="marketing"]:hover,.cat-chip[data-cat="marketing"].active{background:#db2777}
+.cat-chip[data-cat="finance"]:hover,.cat-chip[data-cat="finance"].active{background:#16a34a}
+.cat-chip[data-cat="sales"]:hover,.cat-chip[data-cat="sales"].active{background:#d97706}
+.cat-chip[data-cat="design"]:hover,.cat-chip[data-cat="design"].active{background:#9333ea}
+.cat-chip[data-cat="operations"]:hover,.cat-chip[data-cat="operations"].active{background:#0369a1}
+.cat-chip[data-cat="hr"]:hover,.cat-chip[data-cat="hr"].active{background:#0f766e}
+.cat-chip[data-cat="internship"]:hover,.cat-chip[data-cat="internship"].active{background:#6d28d9}
+.cat-chip[data-cat="remote"]:hover,.cat-chip[data-cat="remote"].active{background:#0f766e}
+.cat-chip[data-cat="hotel"]:hover,.cat-chip[data-cat="hotel"].active{background:#b45309}
+.cat-chip[data-cat="airport"]:hover,.cat-chip[data-cat="airport"].active{background:#0ea5e9}
+.cat-chip[data-cat="healthcare"]:hover,.cat-chip[data-cat="healthcare"].active{background:#dc2626}
+.cat-chip[data-cat="education"]:hover,.cat-chip[data-cat="education"].active{background:#7c3aed}
+.cat-chip[data-cat="retail"]:hover,.cat-chip[data-cat="retail"].active{background:#059669}
+.cat-chip[data-cat="logistics"]:hover,.cat-chip[data-cat="logistics"].active{background:#4f46e5}
+.cat-chip[data-cat="manufacturing"]:hover,.cat-chip[data-cat="manufacturing"].active{background:#57534e}
+.cat-chip[data-cat="security"]:hover,.cat-chip[data-cat="security"].active{background:#334155}
+.cat-chip[data-cat="bluecollar"]:hover,.cat-chip[data-cat="bluecollar"].active{background:#92400e}
+.cat-chip[data-cat="media"]:hover,.cat-chip[data-cat="media"].active{background:#be185d}
+.cat-chip[data-cat="legal"]:hover,.cat-chip[data-cat="legal"].active{background:#1e3a5f}
+.cat-chip[data-cat="realestate"]:hover,.cat-chip[data-cat="realestate"].active{background:#065f46}
+.cat-chip-govt{background:var(--cream)!important;color:var(--ink)!important;border-color:#c7d2e0!important}
+.cat-chip-govt:hover{background:var(--ink)!important;color:#fff!important}
+
+/* ── Skill suggestions ── */
+.skill-tag{display:inline-block;padding:.22rem .6rem;background:#eff6ff;color:var(--accent);border-radius:20px;font-size:.74rem;cursor:pointer;margin:.12rem;font-family:'DM Mono',monospace;border:1px solid #bfdbfe;transition:all .15s}
+.skill-tag:hover{background:var(--accent);color:#fff}
+
+/* ── Job grid ── */
 .jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
 .job-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem;transition:all .2s;position:relative}
-.job-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.job-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.07)}
 .job-source{display:inline-block;padding:.2rem .7rem;border-radius:20px;font-size:.72rem;font-family:'DM Mono',monospace;font-weight:500;color:#fff;margin-bottom:.75rem}
 .job-title{font-weight:600;font-size:1rem;margin-bottom:.25rem;line-height:1.3}
-.job-company{color:var(--muted);font-size:.88rem;margin-bottom:.4rem}
-.job-location{color:var(--muted);font-size:.82rem;font-family:'DM Mono',monospace;margin-bottom:1rem}
-.job-footer{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
-.match-score{display:flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:500}
+.job-company{color:var(--muted);font-size:.87rem;margin-bottom:.35rem}
+.job-location{color:var(--muted);font-size:.8rem;font-family:'DM Mono',monospace;margin-bottom:.9rem}
+.job-footer{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
 .score-bar{width:60px;height:5px;background:var(--cream);border-radius:3px;overflow:hidden}
 .score-fill{height:100%;border-radius:3px;transition:width 1s ease}
-.apply-btn{padding:.4rem 1rem;border-radius:6px;font-size:.82rem;font-family:'Outfit',sans-serif;font-weight:500;cursor:pointer;text-decoration:none;border:none;color:#fff;background:var(--accent);transition:opacity .2s}
+.apply-btn{padding:.4rem 1rem;border-radius:6px;font-size:.82rem;font-weight:500;cursor:pointer;text-decoration:none;border:none;color:#fff;background:var(--accent);transition:opacity .2s}
 .apply-btn:hover{opacity:.85}
-.save-btn{padding:.4rem .8rem;background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.9rem;transition:all .2s}
+.save-btn{padding:.4rem .8rem;background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:.88rem;transition:all .2s}
 .save-btn:hover{background:var(--cream)}
+
+/* ── Loader ── */
 .loading-jobs{display:none;text-align:center;padding:4rem}
 .spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:4rem;color:var(--muted)}
-.skill-suggestion{display:inline-block;padding:.25rem .6rem;background:#eff6ff;color:var(--accent);border-radius:20px;font-size:.75rem;cursor:pointer;margin:.15rem;font-family:'DM Mono',monospace;border:1px solid #bfdbfe}
-.skill-suggestion:hover{background:var(--accent);color:#fff}
+
+/* ── Cover letter modal ── */
 .cover-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
 .cover-modal.show{display:flex}
 .cover-box{background:#fff;border-radius:16px;padding:2rem;max-width:600px;width:90%;max-height:80vh;overflow-y:auto}
 .cover-box h3{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:1rem}
 .cover-text{background:var(--cream);border-radius:8px;padding:1rem;font-size:.88rem;line-height:1.7;white-space:pre-wrap;margin-bottom:1rem}
-
-/* ── Category Filter Chips ───────────────────────────────────────────────── */
-.category-filters{margin-bottom:1.25rem}
-.category-filters-label{font-size:.8rem;font-weight:500;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
-.category-chips{display:flex;gap:.4rem;flex-wrap:wrap}
-.cat-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .9rem;border:1px solid var(--border);border-radius:20px;font-size:.8rem;font-family:'Outfit',sans-serif;font-weight:500;color:var(--muted);background:var(--card);cursor:pointer;transition:all .18s;white-space:nowrap}
-.cat-chip:hover{border-color:var(--accent);color:var(--accent)}
-.cat-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.cat-chip-govt{background:var(--cream);border-color:#c7d2e0;color:var(--ink);text-decoration:none}
-.cat-chip-govt:hover{background:var(--ink);border-color:var(--ink);color:#fff}
-.cat-chip-count{font-size:.7rem;opacity:.7;margin-left:.1rem}
 </style>
 {% endblock %}
 
 {% block content %}
-<p style="color:var(--muted);margin-bottom:1.5rem">Search across LinkedIn, Naukri, Indeed and Internshala. Jobs ranked by your match score.</p>
+<p style="color:var(--muted);margin-bottom:1.25rem;font-size:.92rem">Search across 12 job portals in India. Jobs ranked by your AI match score.</p>
 
 {% if not profile.resume_text %}
-<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:1rem 1.5rem;margin-bottom:1.5rem;font-size:.9rem;color:#92400e">
-  ⚠️ <strong>Upload your resume first</strong> to get AI match scores. <a href="/upload-resume/" style="color:#92400e;font-weight:600">Upload now →</a>
+<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:.9rem 1.25rem;margin-bottom:1.25rem;font-size:.88rem;color:#92400e">
+  ⚠️ <strong>Upload your resume</strong> to unlock AI match scores. <a href="/upload-resume/" style="color:#92400e;font-weight:700">Upload now →</a>
 </div>
 {% endif %}
 
-<!-- Search Bar — unchanged -->
+<!-- Search -->
 <div class="search-bar">
   <div class="search-field" style="flex:2">
     <label>Job Title or Skills</label>
-    <input type="text" id="query" placeholder="e.g. Python Developer, Java Backend, Data Analyst" value="{{ job_title }}">
+    <input type="text" id="query" placeholder="e.g. Python Developer, Hotel Manager, Staff Nurse" value="{{ job_title }}">
   </div>
   <div class="search-field">
     <label>Location</label>
@@ -76,64 +113,92 @@
   <button class="search-btn" onclick="searchJobs()">🔍 Search Jobs</button>
 </div>
 
-<!-- Sources — unchanged -->
-<div style="margin-bottom:1rem">
-  <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em">Search on</p>
-  <div class="sources">
-    <button class="source-btn active" data-source="LinkedIn" style="background:#0077b5;border-color:#0077b5" onclick="toggleSource(this)">● LinkedIn</button>
-    <button class="source-btn active" data-source="Naukri" style="background:#ef4444;border-color:#ef4444" onclick="toggleSource(this)">● Naukri</button>
-    <button class="source-btn active" data-source="Indeed" style="background:#003A9B;border-color:#003A9B" onclick="toggleSource(this)">● Indeed</button>
-    <button class="source-btn active" data-source="Internshala" style="background:#16a34a;border-color:#16a34a" onclick="toggleSource(this)">● Internshala</button>
+<!-- Source toggles -->
+<div class="sources-wrap">
+  <p class="sources-label">Search on — toggle portals on/off</p>
+  <div class="sources-grid" id="sources-grid">
+    <button class="source-btn active" data-source="LinkedIn"      style="background:#0077b5;border-color:#0077b5;color:#fff" onclick="toggleSource(this)">LinkedIn</button>
+    <button class="source-btn active" data-source="Naukri"        style="background:#ef4444;border-color:#ef4444;color:#fff" onclick="toggleSource(this)">Naukri</button>
+    <button class="source-btn active" data-source="Indeed"        style="background:#003A9B;border-color:#003A9B;color:#fff" onclick="toggleSource(this)">Indeed</button>
+    <button class="source-btn active" data-source="Internshala"   style="background:#16a34a;border-color:#16a34a;color:#fff" onclick="toggleSource(this)">Internshala</button>
+    <button class="source-btn active" data-source="Shine"         style="background:#7c3aed;border-color:#7c3aed;color:#fff" onclick="toggleSource(this)">Shine</button>
+    <button class="source-btn active" data-source="Foundit"       style="background:#9333ea;border-color:#9333ea;color:#fff" onclick="toggleSource(this)">Foundit</button>
+    <button class="source-btn active" data-source="Apna"          style="background:#0891b2;border-color:#0891b2;color:#fff" onclick="toggleSource(this)">Apna</button>
+    <button class="source-btn active" data-source="Freshersworld" style="background:#059669;border-color:#059669;color:#fff" onclick="toggleSource(this)">Freshersworld</button>
+    <button class="source-btn active" data-source="TimesJobs"     style="background:#dc2626;border-color:#dc2626;color:#fff" onclick="toggleSource(this)">TimesJobs</button>
+    <button class="source-btn active" data-source="Hirist"        style="background:#0f172a;border-color:#0f172a;color:#fff" onclick="toggleSource(this)">Hirist</button>
+    <button class="source-btn active" data-source="NaukriGulf"    style="background:#b45309;border-color:#b45309;color:#fff" onclick="toggleSource(this)">NaukriGulf</button>
+    <button class="source-btn active" data-source="WorkIndia"     style="background:#0369a1;border-color:#0369a1;color:#fff" onclick="toggleSource(this)">WorkIndia</button>
   </div>
 </div>
 
-<!-- Skills suggestions — unchanged -->
+<!-- Skill suggestions -->
 {% if skills %}
-<div style="margin-bottom:1.5rem">
-  <p style="font-size:.8rem;color:var(--muted);margin-bottom:.5rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em">Search by your skills</p>
-  {% for skill in skills %}<span class="skill-suggestion" onclick="document.getElementById('query').value='{{ skill }}';searchJobs()">{{ skill }}</span>{% endfor %}
+<div style="margin-bottom:1.25rem">
+  <p style="font-size:.75rem;color:var(--muted);margin-bottom:.4rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em">Your skills — click to search</p>
+  {% for skill in skills %}<span class="skill-tag" onclick="document.getElementById('query').value='{{ skill }}';searchJobs()">{{ skill }}</span>{% endfor %}
 </div>
 {% endif %}
 
-<!-- ── NEW: Category Filter Chips ─────────────────────────────────────────── -->
-<div class="category-filters">
-  <p class="category-filters-label">Browse by category</p>
-  <div class="category-chips" id="category-chips">
-    <button class="cat-chip active" data-cat="all"         onclick="filterCat(this)">🔍 All</button>
-    <button class="cat-chip"        data-cat="tech"        onclick="filterCat(this)">💻 Tech &amp; IT</button>
-    <button class="cat-chip"        data-cat="data"        onclick="filterCat(this)">📊 Data &amp; AI</button>
-    <button class="cat-chip"        data-cat="marketing"   onclick="filterCat(this)">📢 Marketing</button>
-    <button class="cat-chip"        data-cat="finance"     onclick="filterCat(this)">💰 Finance</button>
-    <button class="cat-chip"        data-cat="sales"       onclick="filterCat(this)">🤝 Sales</button>
-    <button class="cat-chip"        data-cat="design"      onclick="filterCat(this)">🎨 Design</button>
-    <button class="cat-chip"        data-cat="operations"  onclick="filterCat(this)">⚙️ Operations</button>
-    <button class="cat-chip"        data-cat="hr"          onclick="filterCat(this)">👥 HR</button>
-    <button class="cat-chip"        data-cat="internship"  onclick="filterCat(this)">🎓 Internship</button>
-    <button class="cat-chip"        data-cat="remote"      onclick="filterCat(this)">🏠 Remote</button>
+<!-- Category chips -->
+<div class="cat-section">
+  <p class="cat-section-label">Browse by category</p>
+
+  <!-- General — client-side filter -->
+  <div class="cat-row">
+    <button class="cat-chip active" data-cat="all"        onclick="filterCat(this,'all')">🔍 All Jobs</button>
+    <button class="cat-chip"        data-cat="tech"       onclick="filterCat(this,'tech')">💻 Tech &amp; IT</button>
+    <button class="cat-chip"        data-cat="data"       onclick="filterCat(this,'data')">📊 Data &amp; AI</button>
+    <button class="cat-chip"        data-cat="marketing"  onclick="filterCat(this,'marketing')">📢 Marketing</button>
+    <button class="cat-chip"        data-cat="finance"    onclick="filterCat(this,'finance')">💰 Finance</button>
+    <button class="cat-chip"        data-cat="sales"      onclick="filterCat(this,'sales')">🤝 Sales</button>
+    <button class="cat-chip"        data-cat="design"     onclick="filterCat(this,'design')">🎨 Design</button>
+    <button class="cat-chip"        data-cat="operations" onclick="filterCat(this,'operations')">⚙️ Operations</button>
+    <button class="cat-chip"        data-cat="hr"         onclick="filterCat(this,'hr')">👥 HR</button>
+    <button class="cat-chip"        data-cat="internship" onclick="filterCat(this,'internship')">🎓 Internship</button>
+    <button class="cat-chip"        data-cat="remote"     onclick="filterCat(this,'remote')">🏠 Remote</button>
+  </div>
+
+  <!-- Industry-specific — backend fetch -->
+  <div style="font-size:.7rem;color:var(--muted);margin:.4rem 0 .35rem;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em">Industry — fetches live results</div>
+  <div class="cat-row">
+    <button class="cat-chip" data-cat="hotel"         onclick="fetchCat(this,'hotel')">🏨 Hotel &amp; Hospitality</button>
+    <button class="cat-chip" data-cat="airport"       onclick="fetchCat(this,'airport')">✈️ Airport &amp; Aviation</button>
+    <button class="cat-chip" data-cat="healthcare"    onclick="fetchCat(this,'healthcare')">🏥 Healthcare</button>
+    <button class="cat-chip" data-cat="education"     onclick="fetchCat(this,'education')">📚 Education &amp; EdTech</button>
+    <button class="cat-chip" data-cat="retail"        onclick="fetchCat(this,'retail')">🛍️ Retail</button>
+    <button class="cat-chip" data-cat="logistics"     onclick="fetchCat(this,'logistics')">🚚 Logistics</button>
+    <button class="cat-chip" data-cat="manufacturing" onclick="fetchCat(this,'manufacturing')">🏭 Manufacturing</button>
+    <button class="cat-chip" data-cat="security"      onclick="fetchCat(this,'security')">🛡️ Security</button>
+    <button class="cat-chip" data-cat="bluecollar"    onclick="fetchCat(this,'bluecollar')">🔧 Blue Collar</button>
+    <button class="cat-chip" data-cat="media"         onclick="fetchCat(this,'media')">📺 Media &amp; PR</button>
+    <button class="cat-chip" data-cat="legal"         onclick="fetchCat(this,'legal')">⚖️ Legal</button>
+    <button class="cat-chip" data-cat="realestate"    onclick="fetchCat(this,'realestate')">🏗️ Real Estate</button>
     <a href="{% url 'govt_jobs' %}" class="cat-chip cat-chip-govt">🏛️ Govt Jobs →</a>
   </div>
 </div>
-<!-- ── END Category Filter Chips ─────────────────────────────────────────── -->
 
+<!-- Loader -->
 <div class="loading-jobs" id="loading">
   <div class="spinner"></div>
-  <p style="color:var(--muted)">Searching across job portals...</p>
-  <p style="font-size:.82rem;color:var(--muted);margin-top:.5rem">Scoring matches with AI...</p>
+  <p style="color:var(--muted)">Searching across job portals…</p>
+  <p style="font-size:.82rem;color:var(--muted);margin-top:.4rem">Scoring matches with AI…</p>
 </div>
 
+<!-- Results -->
 <div id="jobs-container">
   <div class="empty" id="empty-state">
     <div style="font-size:3rem;margin-bottom:1rem">🔍</div>
-    <p>Enter a job title above and click Search Jobs</p>
+    <p>Enter a job title above and hit Search — or tap an industry chip to browse live results.</p>
   </div>
   <div class="jobs-grid" id="jobs-grid"></div>
 </div>
 
-<!-- Cover Letter Modal — unchanged -->
+<!-- Cover Letter Modal -->
 <div class="cover-modal" id="cover-modal">
   <div class="cover-box">
     <h3>✍️ AI Cover Letter</h3>
-    <div class="cover-text" id="cover-text">Generating...</div>
+    <div class="cover-text" id="cover-text">Generating…</div>
     <div style="display:flex;gap:.75rem">
       <button class="btn btn-primary" onclick="copyLetter()">Copy Letter</button>
       <button class="btn btn-outline" onclick="document.getElementById('cover-modal').classList.remove('show')">Close</button>
@@ -144,100 +209,131 @@
 
 {% block extra_js %}
 <script>
-/* ── All your original JS — untouched ──────────────────────────────────── */
-let activeSources = ['LinkedIn','Naukri','Indeed','Internshala'];
+/* ── Source toggle ── */
+const SOURCE_COLORS = {
+  LinkedIn:'#0077b5', Naukri:'#ef4444', Indeed:'#003A9B', Internshala:'#16a34a',
+  Shine:'#7c3aed', Foundit:'#9333ea', Apna:'#0891b2', Freshersworld:'#059669',
+  TimesJobs:'#dc2626', Hirist:'#0f172a', NaukriGulf:'#b45309', WorkIndia:'#0369a1'
+};
+let activeSources = Object.keys(SOURCE_COLORS);
 
 function toggleSource(btn) {
   const src = btn.dataset.source;
   if (activeSources.includes(src)) {
-    activeSources = activeSources.filter(s=>s!==src);
-    btn.style.background='';btn.style.borderColor='';btn.style.color='';btn.classList.remove('active');
+    activeSources = activeSources.filter(s => s !== src);
+    btn.style.background = ''; btn.style.borderColor = ''; btn.style.color = '';
+    btn.classList.remove('active');
   } else {
     activeSources.push(src);
+    btn.style.background = SOURCE_COLORS[src];
+    btn.style.borderColor = SOURCE_COLORS[src];
+    btn.style.color = '#fff';
     btn.classList.add('active');
-    const colors={'LinkedIn':'#0077b5','Naukri':'#ef4444','Indeed':'#003A9B','Internshala':'#16a34a'};
-    btn.style.background=colors[src];btn.style.borderColor=colors[src];btn.style.color='#fff';
   }
 }
 
+/* ── Search ── */
 async function searchJobs() {
-  const query = document.getElementById('query').value.trim();
+  const query    = document.getElementById('query').value.trim();
   const location = document.getElementById('location').value.trim() || 'India';
   if (!query) { alert('Please enter a job title or skill'); return; }
-  document.getElementById('loading').style.display='block';
-  document.getElementById('jobs-grid').innerHTML='';
-  document.getElementById('empty-state').style.display='none';
-  // Reset category filter to "All" on every new search
-  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
-  document.querySelector('[data-cat="all"]').classList.add('active');
+  showLoading();
+  resetChips();
   try {
-    const res = await fetch('/find-jobs/', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-      body:JSON.stringify({query,location,sources:activeSources})
-    });
+    const res  = await fetch('/find-jobs/', postOpts({query, location, sources: activeSources, category: 'all'}));
     const data = await res.json();
-    document.getElementById('loading').style.display='none';
-    renderJobs(data.jobs||[]);
-  } catch(e) { document.getElementById('loading').style.display='none'; alert('Search failed: '+e.message); }
+    hideLoading();
+    renderJobs(data.jobs || []);
+  } catch(e) { hideLoading(); alert('Search failed: ' + e.message); }
 }
 
+/* ── Industry chip — fetch from backend ── */
+async function fetchCat(btn, category) {
+  const location = document.getElementById('location').value.trim() || 'India';
+  showLoading();
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  try {
+    const res  = await fetch('/find-jobs/', postOpts({query: category, location, sources: activeSources, category}));
+    const data = await res.json();
+    hideLoading();
+    renderJobs(data.jobs || []);
+  } catch(e) { hideLoading(); alert('Search failed: ' + e.message); }
+}
+
+/* ── General chip — client-side filter ── */
+function filterCat(btn, cat) {
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+  const cards = document.querySelectorAll('.job-card');
+  if (!cards.length) return;
+  if (cat === 'all') { cards.forEach(c => c.style.display = ''); return; }
+  const kws = CAT_KEYWORDS[cat] || [];
+  let visible = 0;
+  cards.forEach(card => {
+    const txt = (card.dataset.jobtext || card.textContent).toLowerCase();
+    const show = kws.some(kw => txt.includes(kw));
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  const empty = document.getElementById('empty-state');
+  if (visible === 0) {
+    empty.style.display = 'block';
+    empty.innerHTML = `<div style="font-size:2.5rem;margin-bottom:1rem">🔍</div><p>No <strong>${btn.textContent.trim()}</strong> jobs in current results.<br><span style="font-size:.85rem">Try searching directly or use an industry chip.</span></p>`;
+  } else {
+    empty.style.display = 'none';
+  }
+}
+
+/* ── Render ── */
 function renderJobs(jobs) {
   const grid = document.getElementById('jobs-grid');
   if (!jobs.length) {
-    document.getElementById('empty-state').style.display='block';
-    document.getElementById('empty-state').innerHTML='<div style="font-size:3rem;margin-bottom:1rem">😕</div><p>No jobs found. Try a different search term.</p>';
+    document.getElementById('empty-state').style.display = 'block';
+    document.getElementById('empty-state').innerHTML = '<div style="font-size:3rem;margin-bottom:1rem">😕</div><p>No jobs found. Try a different keyword or location.</p>';
     return;
   }
+  document.getElementById('empty-state').style.display = 'none';
   grid.innerHTML = jobs.map(job => {
     const score = job.match_score || 0;
-    const scoreColor = score>=70?'#16a34a':score>=50?'#2563eb':'#d97706';
-    // Build a data-text attribute for client-side category filtering
-    const textForFilter = `${job.title} ${job.company} ${job.location}`.toLowerCase();
-    return `<div class="job-card" data-jobtext="${textForFilter}">
+    const sc    = score >= 70 ? '#16a34a' : score >= 50 ? '#2563eb' : '#d97706';
+    const txt   = `${job.title} ${job.company} ${job.location}`.toLowerCase();
+    return `<div class="job-card" data-jobtext="${txt}">
       <div class="job-source" style="background:${job.source_color||'#6b7280'}">${job.source}</div>
       <div class="job-title">${job.title}</div>
       <div class="job-company">🏢 ${job.company}</div>
       <div class="job-location">📍 ${job.location}</div>
-      ${score>0?`<div style="margin-bottom:1rem;padding:.6rem;background:var(--cream);border-radius:6px">
+      ${score > 0 ? `<div style="margin-bottom:.9rem;padding:.55rem .75rem;background:var(--cream);border-radius:6px">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
-          <span style="font-size:.75rem;color:var(--muted)">Match Score</span>
-          <span style="font-size:.82rem;font-weight:600;color:${scoreColor}">${score}%</span>
+          <span style="font-size:.73rem;color:var(--muted)">Match Score</span>
+          <span style="font-size:.8rem;font-weight:700;color:${sc}">${score}%</span>
         </div>
-        <div class="score-bar"><div class="score-fill" style="width:${score}%;background:${scoreColor}"></div></div>
-        ${job.match_reason?`<p style="font-size:.75rem;color:var(--muted);margin-top:.4rem">${job.match_reason}</p>`:''}
-      </div>`:''}
+        <div class="score-bar"><div class="score-fill" style="width:${score}%;background:${sc}"></div></div>
+        ${job.match_reason ? `<p style="font-size:.73rem;color:var(--muted);margin-top:.35rem">${job.match_reason}</p>` : ''}
+      </div>` : ''}
       <div class="job-footer">
-        <div style="display:flex;gap:.5rem">
+        <div style="display:flex;gap:.4rem">
           <a href="${job.apply_url}" target="_blank" class="apply-btn">Apply →</a>
-          <button class="save-btn" onclick='saveJob(${JSON.stringify(job).replace(/'/g,"&#39;")})' title="Save job">🔖</button>
+          <button class="save-btn" onclick='saveJob(${JSON.stringify(job).replace(/'/g,"&#39;")})' title="Save">🔖</button>
         </div>
-        <button class="btn btn-sm btn-outline" onclick='getCoverLetter("${job.title.replace(/"/g,"'")}","${job.company.replace(/"/g,"'")}");'>✍️ Cover Letter</button>
+        <button class="btn btn-sm btn-outline" onclick='getCoverLetter("${job.title.replace(/"/g,"'")}","${job.company.replace(/"/g,"'")}");'>✍️ Cover</button>
       </div>
     </div>`;
   }).join('');
 }
 
 async function saveJob(job) {
-  await fetch('/save-job/', {
-    method:'POST',
-    headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-    body:JSON.stringify(job)
-  });
+  await fetch('/save-job/', postOpts(job));
   alert('Job saved! ✓');
 }
 
 async function getCoverLetter(title, company) {
   const modal = document.getElementById('cover-modal');
-  const text = document.getElementById('cover-text');
+  const text  = document.getElementById('cover-text');
   modal.classList.add('show');
-  text.textContent = 'Generating cover letter...';
+  text.textContent = 'Generating cover letter…';
   try {
-    const res = await fetch('/generate-cover-letter/', {
-      method:'POST',
-      headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
-      body:JSON.stringify({job_title:title,company})
-    });
+    const res  = await fetch('/generate-cover-letter/', postOpts({job_title: title, company}));
     const data = await res.json();
     text.textContent = data.cover_letter;
   } catch(e) { text.textContent = 'Failed to generate. Try again.'; }
@@ -248,49 +344,39 @@ function copyLetter() {
   alert('Copied to clipboard!');
 }
 
+/* ── Utils ── */
+function postOpts(body) {
+  return {method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')}, body:JSON.stringify(body)};
+}
 function getCookie(name) {
-  let v=null; document.cookie.split(';').forEach(c=>{const [k,val]=c.trim().split('=');if(k===name)v=decodeURIComponent(val);}); return v;
+  let v=null; document.cookie.split(';').forEach(c=>{const[k,val]=c.trim().split('=');if(k===name)v=decodeURIComponent(val);}); return v;
+}
+function showLoading() {
+  document.getElementById('loading').style.display='block';
+  document.getElementById('jobs-grid').innerHTML='';
+  document.getElementById('empty-state').style.display='none';
+}
+function hideLoading() { document.getElementById('loading').style.display='none'; }
+function resetChips() {
+  document.querySelectorAll('.cat-chip').forEach(c=>c.classList.remove('active'));
+  const all = document.querySelector('[data-cat="all"]');
+  if (all) all.classList.add('active');
 }
 
 document.getElementById('query').addEventListener('keydown', e => { if(e.key==='Enter') searchJobs(); });
 
-/* ── NEW: Category filter — works on rendered job cards ─────────────────── */
+/* ── Client-side keyword map ── */
 const CAT_KEYWORDS = {
-  tech:       ['python','java','javascript','react','node','django','developer','engineer','software','devops','cloud','aws','backend','frontend','fullstack','golang','ruby','php','ios','android','mobile','cyber','sre','linux'],
-  data:       ['data','analyst','analytics','ml','machine learning','deep learning','ai','nlp','tableau','power bi','sql','bigquery','spark','pandas','numpy','data science','bi '],
-  marketing:  ['marketing','seo','sem','content','social media','brand','growth','digital','ppc','email marketing','campaigns','copywriter','pr ','public relation'],
-  finance:    ['finance','account','ca ','cfa','cpa','audit','tax','banking','investment','equity','mutual fund','insurance','actuar','tally','gst'],
-  sales:      ['sales','business development','bd ','crm','target','revenue','account manager','pre-sales','inside sales','channel sales'],
-  design:     ['design','ui','ux','figma','sketch','graphic','creative','photoshop','illustrator','motion','animation','visual'],
-  operations: ['operations','ops','supply chain','logistics','warehouse','procurement','scm','inventory','production','lean','six sigma'],
-  hr:         ['hr ','human resource','recruiter','talent','payroll','learning','hris','people','workforce','compensation'],
-  internship: ['intern','internship','trainee','fresher','graduate trainee','entry level','apprentice'],
-  remote:     ['remote','work from home','wfh','hybrid','distributed','anywhere'],
+  tech:        ['python','java','javascript','react','node','django','developer','engineer','software','devops','cloud','aws','backend','frontend','fullstack','golang','ruby','php','ios','android','cyber','sre','linux'],
+  data:        ['data','analyst','analytics','ml','machine learning','deep learning','ai','nlp','tableau','power bi','sql','bigquery','spark','pandas','data science'],
+  marketing:   ['marketing','seo','sem','content','social media','brand','growth','digital','ppc','email marketing','copywriter','pr ','public relation'],
+  finance:     ['finance','account','ca ','cfa','audit','tax','banking','investment','equity','mutual fund','insurance','actuar','tally','gst'],
+  sales:       ['sales','business development','bd ','crm','revenue','account manager','pre-sales','inside sales','channel sales'],
+  design:      ['design','ui','ux','figma','sketch','graphic','creative','photoshop','illustrator','motion','animation','visual'],
+  operations:  ['operations','ops','supply chain','logistics','warehouse','procurement','scm','inventory','production','lean','six sigma'],
+  hr:          ['hr ','human resource','recruiter','talent','payroll','hris','people','workforce','compensation'],
+  internship:  ['intern','internship','trainee','fresher','graduate trainee','entry level','apprentice'],
+  remote:      ['remote','work from home','wfh','hybrid','distributed'],
 };
-
-function filterCat(btn) {
-  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
-  btn.classList.add('active');
-  const cat = btn.dataset.cat;
-  const cards = document.querySelectorAll('.job-card');
-  if (!cards.length) return; // no results yet
-  if (cat === 'all') { cards.forEach(c => c.style.display = ''); return; }
-  const keywords = CAT_KEYWORDS[cat] || [];
-  let visible = 0;
-  cards.forEach(card => {
-    const text = card.dataset.jobtext || card.textContent.toLowerCase();
-    const match = keywords.some(kw => text.includes(kw));
-    card.style.display = match ? '' : 'none';
-    if (match) visible++;
-  });
-  // Show friendly message if nothing matched
-  const empty = document.getElementById('empty-state');
-  if (visible === 0) {
-    empty.style.display = 'block';
-    empty.innerHTML = `<div style="font-size:2.5rem;margin-bottom:1rem">🔍</div><p>No <strong>${btn.textContent.trim()}</strong> jobs in current results.<br><span style="font-size:.85rem">Try searching specifically for this category above.</span></p>`;
-  } else {
-    empty.style.display = 'none';
-  }
-}
 </script>
 {% endblock %}
