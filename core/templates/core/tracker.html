@@ -85,21 +85,21 @@ textarea.form-control{resize:vertical;min-height:80px}
 
 <!-- Kanban board -->
 <div class="kanban-board" id="kanbanBoard">
-  {% for col in columns %}
+{% for status, col in columns.items %}
   <div class="kanban-col"
-       id="col-{{ col.status }}"
-       data-status="{{ col.status }}"
+       id="col-{{ status }}"
+       data-status="{{ status }}"
        ondragover="allowDrop(event)"
        ondragleave="leaveDrop(event)"
-       ondrop="dropCard(event, '{{ col.status }}')">
+       ondrop="dropCard(event, '{{ status }}')">
 
     <div class="col-header">
       <span class="col-title">{{ col.icon }} {{ col.label }}</span>
-      <span class="col-count" id="cnt-{{ col.status }}">{{ col.apps|length }}</span>
+      <span class="col-count" id="cnt-{{ status }}">{{ col.items|length }}</span>
     </div>
 
-    <div id="cards-{{ col.status }}" style="display:flex;flex-direction:column;gap:.75rem;flex:1">
-      {% for app in col.apps %}
+    <div id="cards-{{ status }}" style="display:flex;flex-direction:column;gap:.75rem;flex:1">
+      {% for app in col.items %}
       <div class="kanban-card"
            id="card-{{ app.id }}"
            draggable="true"
@@ -129,14 +129,14 @@ textarea.form-control{resize:vertical;min-height:80px}
         </div>
       </div>
       {% empty %}
-      <div class="col-empty" id="empty-{{ col.status }}">
+      <div class="col-empty" id="empty-{{ status }}">
         <span class="col-empty-icon">{{ col.icon }}</span>
         <span>No applications</span>
       </div>
       {% endfor %}
     </div>
 
-    <button class="col-add-btn" onclick="openAddModal('{{ col.status }}')">+ Add here</button>
+    <button class="col-add-btn" onclick="openAddModal('{{ status }}')">+ Add here</button>
   </div>
   {% endfor %}
 </div>
@@ -263,14 +263,13 @@ function dropCard(e, newStatus) {
   refreshEmptyStates();
   refreshCounts();
 
-  // Persist via AJAX
-  fetch('{% url "update_tracker_status" %}', {
+  fetch('/tracker/update/' + draggedId + '/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-    body: JSON.stringify({ id: draggedId, status: newStatus }),
+    body: JSON.stringify({ status: newStatus }),
   })
   .then(r => r.json())
-  .then(d => { if (!d.success) location.reload(); })
+  .then(d => { if (!d.ok) location.reload(); })
   .catch(() => location.reload());
 
   draggedId = null;
@@ -285,7 +284,7 @@ function deleteApp(id) {
   })
   .then(r => r.json())
   .then(d => {
-    if (d.success) {
+    if (d.ok) {
       const card = document.getElementById('card-' + id);
       if (card) {
         card.style.transition = 'opacity .2s, transform .2s';
@@ -335,13 +334,13 @@ function saveEdit() {
   const newStatus = document.getElementById('editStatusVal').value;
   const notes     = document.getElementById('editNotesInput').value;
 
-  fetch('{% url "update_tracker_status" %}', {
+  fetch('/tracker/update/' + editId + '/', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
-    body:    JSON.stringify({ id: editId, status: newStatus, notes }),
+    body:    JSON.stringify({ status: newStatus, notes }),
   })
   .then(r => r.json())
-  .then(d => { if (d.success) location.reload(); });
+  .then(d => { if (d.ok) location.reload(); });
 }
 
 /* ── Helpers ──────────────────────────────────────── */
