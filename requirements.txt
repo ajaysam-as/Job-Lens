@@ -10,3 +10,4 @@ razorpay
 twilio
 psycopg2-binary
 dj-database-url
+Pillow
