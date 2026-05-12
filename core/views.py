@@ -779,7 +779,7 @@ def resume_tips(request):
                 error = "AI returned unexpected format — please try again."
             except Exception as e:
                 logger.error("resume_tips error: %s", e, exc_info=True)
-                error = f"Something went wrong: {e}"
+                error = f"Error: {type(e).__name__}: {e}"
 
     return render(request, "core/resume_tips.html", {
         "profile":     profile,
