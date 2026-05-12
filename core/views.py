@@ -286,6 +286,204 @@ def get_portal_cards(category, query, location="India"):
                 "Freshersworld": query or "remote jobs",
             }
         },
+        "operations": {
+            "label": "Operations & Supply Chain",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Operations & supply chain roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Ops manager & SCM vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Operations listings across India"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Logistics & operations roles"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Operations & SCM jobs"},
+            ],
+            "queries": {
+                "LinkedIn": query or "operations manager", "Naukri": query or "operations manager",
+                "Indeed": query or "operations manager", "Foundit": query or "operations",
+                "TimesJobs": query or "supply chain operations",
+            }
+        },
+        "education": {
+            "label": "Education & EdTech",
+            "portals": [
+                {"name": "LinkedIn",    "color": "#0077b5", "icon": "💼", "note": "EdTech & teaching roles"},
+                {"name": "Naukri",      "color": "#ef4444", "icon": "🔴", "note": "Education sector vacancies"},
+                {"name": "Indeed",      "color": "#003A9B", "icon": "🔍", "note": "Teaching & training jobs"},
+                {"name": "Internshala", "color": "#16a34a", "icon": "🌱", "note": "EdTech internships & freshers"},
+                {"name": "TimesJobs",   "color": "#dc2626", "icon": "📰", "note": "Education & e-learning roles"},
+                {"name": "Shine",       "color": "#7c3aed", "icon": "✨", "note": "Academic & training vacancies"},
+            ],
+            "queries": {
+                "LinkedIn": query or "edtech", "Naukri": query or "education teacher",
+                "Indeed": query or "teacher trainer", "Internshala": query or "education intern",
+                "TimesJobs": query or "education jobs", "Shine": query or "academic jobs",
+            }
+        },
+        "hospitality": {
+            "label": "Hotel & Hospitality",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Hotel & resort management roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Hospitality & F&B vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Hotel jobs across India"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Hospitality & tourism roles"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Hotel & catering vacancies"},
+            ],
+            "queries": {
+                "LinkedIn": query or "hotel management", "Naukri": query or "hospitality",
+                "Indeed": query or "hotel jobs", "Foundit": query or "hospitality tourism",
+                "TimesJobs": query or "hotel catering jobs",
+            }
+        },
+        "aviation": {
+            "label": "Airport & Aviation",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Aviation & airline roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Airport & ground staff vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Aviation jobs across India"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Cabin crew & pilot roles"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Airport operations & cargo"},
+            ],
+            "queries": {
+                "LinkedIn": query or "aviation", "Naukri": query or "airport jobs",
+                "Indeed": query or "aviation jobs", "Shine": query or "cabin crew pilot",
+                "TimesJobs": query or "airport aviation jobs",
+            }
+        },
+        "healthcare": {
+            "label": "Healthcare & Pharma",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Healthcare & pharma leadership"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Doctor, nurse & pharma vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Healthcare jobs across India"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Medical & clinical roles"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Pharma & hospital vacancies"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Nursing & allied health roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "healthcare", "Naukri": query or "doctor nurse pharmacist",
+                "Indeed": query or "healthcare jobs", "Foundit": query or "medical clinical",
+                "TimesJobs": query or "pharma hospital jobs", "Shine": query or "nursing health",
+            }
+        },
+        "retail": {
+            "label": "Retail & E-commerce",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Retail & e-commerce leadership"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Retail store & category roles"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Retail jobs across India"},
+                {"name": "Apna",      "color": "#0891b2", "icon": "🤝", "note": "Store staff & sales associates"},
+                {"name": "WorkIndia", "color": "#0369a1", "icon": "🏢", "note": "Ground retail & field sales"},
+            ],
+            "queries": {
+                "LinkedIn": query or "retail manager", "Naukri": query or "retail ecommerce",
+                "Indeed": query or "retail jobs", "Apna": query or "retail store",
+                "WorkIndia": query or "retail sales",
+            }
+        },
+        "logistics": {
+            "label": "Logistics & Warehouse",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Logistics & supply chain roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Warehouse & delivery vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Logistics jobs across India"},
+                {"name": "Apna",      "color": "#0891b2", "icon": "🤝", "note": "Delivery & warehouse staff"},
+                {"name": "WorkIndia", "color": "#0369a1", "icon": "🏢", "note": "Driver & field logistics roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "logistics manager", "Naukri": query or "logistics warehouse",
+                "Indeed": query or "logistics jobs", "Apna": query or "delivery logistics",
+                "WorkIndia": query or "driver logistics",
+            }
+        },
+        "manufacturing": {
+            "label": "Manufacturing & Engineering",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Manufacturing & plant management"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Production & quality engineer roles"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Manufacturing jobs across India"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Industrial & plant engineering"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Manufacturing & production vacancies"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Mechanical & electrical engineer roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "manufacturing engineer", "Naukri": query or "production engineer",
+                "Indeed": query or "manufacturing jobs", "Foundit": query or "plant engineer",
+                "TimesJobs": query or "manufacturing production", "Shine": query or "mechanical engineer",
+            }
+        },
+        "security": {
+            "label": "Security & Cybersecurity",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Cybersecurity & InfoSec roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Security analyst & SOC vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Security jobs across India"},
+                {"name": "Hirist",    "color": "#0f172a", "icon": "💻", "note": "Tech security & ethical hacking"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Physical & cyber security roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "cybersecurity", "Naukri": query or "security analyst",
+                "Indeed": query or "security jobs", "Hirist": query or "cybersecurity ethical hacking",
+                "Foundit": query or "security engineer",
+            }
+        },
+        "bluecollar": {
+            "label": "Blue Collar & Skilled Trades",
+            "portals": [
+                {"name": "Apna",      "color": "#0891b2", "icon": "🤝", "note": "Blue collar & trade verified jobs"},
+                {"name": "WorkIndia", "color": "#0369a1", "icon": "🏢", "note": "Skilled trade & ground-level roles"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Trade & skilled worker listings"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "ITI & diploma holder vacancies"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Technician & skilled trade roles"},
+            ],
+            "queries": {
+                "Apna": query or "blue collar skilled", "WorkIndia": query or "skilled worker",
+                "Indeed": query or "technician trade jobs", "Naukri": query or "ITI diploma jobs",
+                "Foundit": query or "technician mechanic",
+            }
+        },
+        "media": {
+            "label": "Media & PR",
+            "portals": [
+                {"name": "LinkedIn",    "color": "#0077b5", "icon": "💼", "note": "Media, journalism & PR roles"},
+                {"name": "Naukri",      "color": "#ef4444", "icon": "🔴", "note": "Content & media vacancies"},
+                {"name": "Indeed",      "color": "#003A9B", "icon": "🔍", "note": "Media jobs across India"},
+                {"name": "Internshala", "color": "#16a34a", "icon": "🌱", "note": "Journalism & content internships"},
+                {"name": "Shine",       "color": "#7c3aed", "icon": "✨", "note": "PR & communications roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "media journalism PR", "Naukri": query or "media content writer",
+                "Indeed": query or "media jobs", "Internshala": query or "journalism content intern",
+                "Shine": query or "PR communications",
+            }
+        },
+        "legal": {
+            "label": "Legal & Compliance",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Legal counsel & compliance roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Lawyer & legal advisor vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Legal jobs across India"},
+                {"name": "Foundit",   "color": "#9333ea", "icon": "🔮", "note": "Corporate legal & compliance"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Legal & regulatory roles"},
+            ],
+            "queries": {
+                "LinkedIn": query or "legal counsel", "Naukri": query or "lawyer advocate",
+                "Indeed": query or "legal jobs", "Foundit": query or "compliance legal",
+                "TimesJobs": query or "legal regulatory jobs",
+            }
+        },
+        "realestate": {
+            "label": "Real Estate & Construction",
+            "portals": [
+                {"name": "LinkedIn",  "color": "#0077b5", "icon": "💼", "note": "Real estate & property roles"},
+                {"name": "Naukri",    "color": "#ef4444", "icon": "🔴", "note": "Property & construction vacancies"},
+                {"name": "Indeed",    "color": "#003A9B", "icon": "🔍", "note": "Real estate jobs across India"},
+                {"name": "Shine",     "color": "#7c3aed", "icon": "✨", "note": "Civil & site engineer roles"},
+                {"name": "TimesJobs", "color": "#dc2626", "icon": "📰", "note": "Construction & property management"},
+            ],
+            "queries": {
+                "LinkedIn": query or "real estate", "Naukri": query or "real estate property",
+                "Indeed": query or "real estate jobs", "Shine": query or "civil site engineer",
+                "TimesJobs": query or "construction property jobs",
+            }
+        },
     }
 
     URL_BUILDERS = {
