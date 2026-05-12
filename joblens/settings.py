@@ -17,14 +17,17 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.humanize",   # ← for ₹ number formatting in templates
+    "django.contrib.humanize",
     "core",
 ]
 
+# ── Middleware ────────────────────────────────────────────────────────────────
+# NOTE: LocaleMiddleware must come AFTER SessionMiddleware and BEFORE CommonMiddleware
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",          # ← NEW: Tamil/English toggle
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -44,11 +47,11 @@ TEMPLATES = [{
         "django.template.context_processors.request",
         "django.contrib.auth.context_processors.auth",
         "django.contrib.messages.context_processors.messages",
+        "django.template.context_processors.i18n",       # ← NEW: exposes LANGUAGE_CODE in templates
     ]},
 }]
 
 # ── Database ──────────────────────────────────────────────────────────────────
-
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
@@ -77,23 +80,37 @@ LOGIN_URL          = "/login/"
 LOGIN_REDIRECT_URL = "/dashboard/"
 
 # ── Internationalisation ──────────────────────────────────────────────────────
-LANGUAGE_CODE = "en-us"
+# FIX 4: Full i18n setup for Tamil/English toggle
+from django.utils.translation import gettext_lazy as _
+
+LANGUAGE_CODE = "en"           # default language
 TIME_ZONE     = "Asia/Kolkata"
 USE_I18N      = True
+USE_L10N      = True
 USE_TZ        = True
+
+LANGUAGES = [
+    ("en", _("English")),
+    ("ta", _("தமிழ்")),
+]
+
+# Where Django looks for .po / .mo translation files
+LOCALE_PATHS = [
+    BASE_DIR / "locale",
+]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# ── Third-party API keys (set in Railway dashboard → Variables) ───────────────
-GROQ_API_KEY          = os.environ.get("GROQ_API_KEY",           "")
-RAZORPAY_KEY_ID       = os.environ.get("RAZORPAY_KEY_ID",        "rzp_test_XXXXXXXXXXXX")
-RAZORPAY_KEY_SECRET   = os.environ.get("RAZORPAY_KEY_SECRET",    "")
+# ── Third-party API keys ──────────────────────────────────────────────────────
+GROQ_API_KEY            = os.environ.get("GROQ_API_KEY",            "")
+RAZORPAY_KEY_ID         = os.environ.get("RAZORPAY_KEY_ID",         "rzp_test_XXXXXXXXXXXX")
+RAZORPAY_KEY_SECRET     = os.environ.get("RAZORPAY_KEY_SECRET",     "")
 RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "")
-TWILIO_ACCOUNT_SID    = os.environ.get("TWILIO_ACCOUNT_SID",     "")
-TWILIO_AUTH_TOKEN     = os.environ.get("TWILIO_AUTH_TOKEN",      "")
-TWILIO_WHATSAPP_FROM  = os.environ.get("TWILIO_WHATSAPP_FROM",   "whatsapp:+14155238886")
+TWILIO_ACCOUNT_SID      = os.environ.get("TWILIO_ACCOUNT_SID",      "")
+TWILIO_AUTH_TOKEN       = os.environ.get("TWILIO_AUTH_TOKEN",       "")
+TWILIO_WHATSAPP_FROM    = os.environ.get("TWILIO_WHATSAPP_FROM",    "whatsapp:+14155238886")
 
-# ── Email (for future password reset) ────────────────────────────────────────
+# ── Email ─────────────────────────────────────────────────────────────────────
 EMAIL_BACKEND       = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST          = "smtp.gmail.com"
 EMAIL_PORT          = 587
@@ -102,7 +119,7 @@ EMAIL_HOST_USER     = os.environ.get("EMAIL_HOST_USER",     "")
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL  = os.environ.get("DEFAULT_FROM_EMAIL",  "JobLens <noreply@joblens.in>")
 
-# ── Logging (visible in Railway deploy logs) ──────────────────────────────────
+# ── Logging ───────────────────────────────────────────────────────────────────
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

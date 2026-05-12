@@ -1,0 +1,193 @@
+# Tamil translation for JobLens
+# locale/ta/LC_MESSAGES/django.po
+# Run after editing:
+#   python manage.py compilemessages
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: JobLens 1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"Language: ta\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# ── Navbar ────────────────────────────────────────────────────────────────────
+msgid "Dashboard"
+msgstr "டாஷ்போர்டு"
+
+msgid "Find Jobs"
+msgstr "வேலை தேடு"
+
+msgid "Govt Jobs"
+msgstr "அரசு வேலை"
+
+msgid "Saved Jobs"
+msgstr "சேமித்த வேலைகள்"
+
+msgid "Resume Tips"
+msgstr "ரெஸ்யூமே குறிப்புகள்"
+
+msgid "Cover Letter"
+msgstr "கவர் லெட்டர்"
+
+msgid "Tracker"
+msgstr "விண்ணப்ப டிராக்கர்"
+
+msgid "Post a Job"
+msgstr "வேலை போடு"
+
+msgid "Hirer Dashboard"
+msgstr "நியமனர் டாஷ்போர்டு"
+
+msgid "Profile"
+msgstr "சுயவிவரம்"
+
+msgid "Logout"
+msgstr "வெளியேறு"
+
+msgid "Login"
+msgstr "உள்நுழை"
+
+msgid "Register"
+msgstr "பதிவு செய்"
+
+# ── Landing page ──────────────────────────────────────────────────────────────
+msgid "Find Your Dream Job"
+msgstr "உங்கள் கனவு வேலையை கண்டுபிடியுங்கள்"
+
+msgid "AI-powered job search for the Indian market"
+msgstr "இந்திய சந்தைக்காக AI-உதவியோடு வேலை தேடல்"
+
+msgid "Get Started"
+msgstr "தொடங்கு"
+
+# ── Dashboard ─────────────────────────────────────────────────────────────────
+msgid "Welcome back"
+msgstr "மீண்டும் வரவேற்கிறோம்"
+
+msgid "Upload Resume"
+msgstr "ரெஸ்யூமே பதிவேற்று"
+
+msgid "Skills detected"
+msgstr "திறன்கள் கண்டறியப்பட்டன"
+
+msgid "Saved jobs"
+msgstr "சேமித்த வேலைகள்"
+
+# ── Resume Tips ───────────────────────────────────────────────────────────────
+msgid "AI Resume Coach"
+msgstr "AI ரெஸ்யூமே பயிற்சியாளர்"
+
+msgid "Generate Tips"
+msgstr "குறிப்புகளை உருவாக்கு"
+
+msgid "Regenerate"
+msgstr "மீண்டும் உருவாக்கு"
+
+msgid "No resume found. Please upload your resume first."
+msgstr "ரெஸ்யூமே இல்லை. முதலில் உங்கள் ரெஸ்யூமேயை பதிவேற்றவும்."
+
+msgid "Ready to level up your resume?"
+msgstr "உங்கள் ரெஸ்யூமேயை மேம்படுத்த தயாரா?"
+
+msgid "High"
+msgstr "அதிகம்"
+
+msgid "Medium"
+msgstr "நடுத்தரம்"
+
+msgid "Low"
+msgstr "குறைவு"
+
+# ── Find Jobs ─────────────────────────────────────────────────────────────────
+msgid "Search for jobs"
+msgstr "வேலைகளை தேடுங்கள்"
+
+msgid "Location"
+msgstr "இடம்"
+
+msgid "Search"
+msgstr "தேடு"
+
+msgid "All Categories"
+msgstr "அனைத்து வகைகளும்"
+
+# ── Hirer / Payment ───────────────────────────────────────────────────────────
+msgid "Post a Job"
+msgstr "வேலை விளம்பரம் போடு"
+
+msgid "Job Title"
+msgstr "வேலை தலைப்பு"
+
+msgid "Company Name"
+msgstr "நிறுவன பெயர்"
+
+msgid "Pay ₹999 & Go Live"
+msgstr "₹999 செலுத்தி வெளியிடு"
+
+msgid "Payment verification failed. Please contact support."
+msgstr "கட்டண சரிபார்ப்பு தோல்வியடைந்தது. ஆதரவை தொடர்பு கொள்ளவும்."
+
+msgid "is now live! Valid for 30 days."
+msgstr "இப்போது நேரலையில் உள்ளது! 30 நாட்களுக்கு செல்லுபடியாகும்."
+
+# ── Tracker ───────────────────────────────────────────────────────────────────
+msgid "Application Tracker"
+msgstr "விண்ணப்ப டிராக்கர்"
+
+msgid "Applied"
+msgstr "விண்ணப்பித்தது"
+
+msgid "Interviewing"
+msgstr "நேர்காணல்"
+
+msgid "Offered"
+msgstr "வாய்ப்பு கிடைத்தது"
+
+msgid "Rejected"
+msgstr "நிராகரிக்கப்பட்டது"
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+msgid "Username"
+msgstr "பயனர்பெயர்"
+
+msgid "Password"
+msgstr "கடவுச்சொல்"
+
+msgid "Email"
+msgstr "மின்னஞ்சல்"
+
+msgid "Invalid credentials."
+msgstr "தவறான விவரங்கள்."
+
+msgid "Username already taken."
+msgstr "பயனர்பெயர் ஏற்கெனவே பயன்பாட்டில் உள்ளது."
+
+# ── General ───────────────────────────────────────────────────────────────────
+msgid "Save"
+msgstr "சேமி"
+
+msgid "Cancel"
+msgstr "ரத்து செய்"
+
+msgid "Submit"
+msgstr "சமர்ப்பி"
+
+msgid "Loading..."
+msgstr "ஏற்றுகிறது..."
+
+msgid "Error"
+msgstr "பிழை"
+
+msgid "Success"
+msgstr "வெற்றி"
+
+msgid "Back"
+msgstr "திரும்பு"
+
+msgid "View"
+msgstr "பார்"
+
+msgid "Apply"
+msgstr "விண்ணப்பி"
