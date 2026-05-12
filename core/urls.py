@@ -1,13 +1,5 @@
 from django.urls import path
 from . import views
-from .hirer_views import (
-    post_job,
-    initiate_payment,
-    payment_callback,
-    razorpay_webhook,
-    hirer_dashboard,
-)
-
 urlpatterns = [
     # ── Existing routes ───────────────────────────────────────────────────────
     path('',                        views.landing,               name='landing'),
@@ -26,11 +18,11 @@ urlpatterns = [
     path('govt-jobs/',              views.govt_jobs,             name='govt_jobs'),
 
     # ── New: Hirer Platform ───────────────────────────────────────────────────
-    path('hirer/post/',                  post_job,         name='post_job'),
-    path('hirer/pay/<int:posting_id>/',  initiate_payment, name='initiate_payment'),
-    path('hirer/payment/callback/',      payment_callback, name='payment_callback'),
-    path('hirer/payment/webhook/',       razorpay_webhook, name='razorpay_webhook'),
-    path('hirer/dashboard/',             hirer_dashboard,  name='hirer_dashboard'),
+    path('hirer/post/',                  views.post_job,         name='post_job'),
+    path('hirer/pay/<int:posting_id>/',  views.initiate_payment, name='initiate_payment'),
+    path('hirer/payment/callback/',      views.payment_callback, name='payment_callback'),
+    path('hirer/payment/webhook/',       views.razorpay_webhook, name='razorpay_webhook'),
+    path('hirer/dashboard/',             views.hirer_dashboard,  name='hirer_dashboard'),
 
     path("tracker/",                 views.tracker,        name="tracker"),
     path("tracker/update/<int:pk>/", views.tracker_update, name="tracker_update"),
