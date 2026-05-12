@@ -19,9 +19,7 @@ urlpatterns = [
 
     # ── New: Hirer Platform ───────────────────────────────────────────────────
     path('hirer/post/',                  views.post_job,         name='post_job'),
-    path('hirer/pay/<int:posting_id>/',  views.initiate_payment, name='initiate_payment'),
-    path('hirer/payment/callback/',      views.payment_callback, name='payment_callback'),
-    path('hirer/payment/webhook/',       views.razorpay_webhook, name='razorpay_webhook'),
+
     path('hirer/dashboard/',             views.hirer_dashboard,  name='hirer_dashboard'),
 
     path("tracker/",                 views.tracker,        name="tracker"),
