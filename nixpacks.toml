@@ -1,5 +1,0 @@
-[phases.setup]
-aptPkgs = ["gettext"]
-
-[phases.build]
-cmds = ["python manage.py compilemessages", "python manage.py collectstatic --noinput"]
