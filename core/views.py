@@ -80,13 +80,14 @@ def extract_text_from_docx(file):
     doc = docx.Document(io.BytesIO(file.read()))
     return "\n".join(para.text for para in doc.paragraphs)
 
-def ai_call(messages_list, max_tokens=500, temp=0.1, timeout=30):
+def ai_call(messages_list, max_tokens=500, temp=0.1, timeout=25):
     client = get_groq()
     r = client.chat.completions.create(
         model=MODEL, messages=messages_list, max_tokens=max_tokens,
         temperature=temp, timeout=timeout)
     return r.choices[0].message.content.strip()
-    
+ 
+
 def ai_extract_skills(resume_text):
     prompt = f"""Extract from this resume. Return ONLY valid JSON, no markdown:
 {{"skills":["skill1"],"job_titles":["title1"],"experience_years":0,"location":"city","summary":"2 sentence summary"}}
@@ -908,25 +909,19 @@ def tracker_delete(request, pk):
 
 @login_required
 def resume_tips(request):
-    """
-    FIX: Was missing `generated=True` and `skills_list` in context.
-    The template's {% if generated %} block never fired, so tips were
-    silently discarded even when the AI returned them successfully.
-    """
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
-
-    # Build skills chips for the hero row
+ 
     skills_list = []
     if profile.skills:
         try:
             skills_list = json.loads(profile.skills)[:10]
         except (json.JSONDecodeError, TypeError):
             pass
-
+ 
     tips      = None
     error     = None
     generated = False
-
+ 
     if request.method == 'POST':
         if not profile.resume_text:
             error = "No resume found. Please upload your resume first."
@@ -939,28 +934,28 @@ def resume_tips(request):
                     'Format: [{"tip_number":1,"category":"Impact","priority":"high",'
                     '"title":"Short title","detail":"2-3 sentence advice."}]\n'
                     'priority must be one of: "high", "medium", "low"\n\n'
-                    f"Resume:\n{profile.resume_text[:4000]}"
+                    f"Resume:\n{profile.resume_text[:2000]}"
                 )
                 raw = ai_call(
                     [
                         {"role": "system", "content": "Return only a valid JSON array, nothing else."},
                         {"role": "user",   "content": prompt},
                     ],
-                    max_tokens=1200,
+                    max_tokens=800,
                     temp=0.4,
+                    timeout=25,
                 )
-                # Strip accidental markdown fences
                 raw = raw.strip()
                 if raw.startswith("```"):
                     raw = raw.split("```")[1]
                     if raw.startswith("json"):
                         raw = raw[4:]
                 raw = raw.strip()
-
+ 
                 tips = json.loads(raw)
                 if not isinstance(tips, list):
                     raise ValueError("AI returned a non-list JSON value")
-
+ 
                 priority_styles = {
                     "high":   {"border": "#ef4444", "badge_bg": "#fef2f2", "badge_text": "#b91c1c"},
                     "medium": {"border": "#f59e0b", "badge_bg": "#fffbeb", "badge_text": "#92400e"},
@@ -970,24 +965,25 @@ def resume_tips(request):
                     pri = tip.get("priority", "medium").lower()
                     tip["priority"] = pri
                     tip["style"]    = priority_styles.get(pri, priority_styles["medium"])
-
-                generated = True   # ← THE KEY FIX
-
+ 
+                generated = True
+ 
             except json.JSONDecodeError as e:
                 logger.error("resume_tips JSON parse error: %s | raw=%s", e, raw[:200])
                 error = "AI returned unexpected format — please try again."
             except Exception as e:
                 logger.error("resume_tips error: %s", e, exc_info=True)
                 error = f"Error: {type(e).__name__}: {e}"
-
+ 
     return render(request, "core/resume_tips.html", {
         "profile":     profile,
         "tips":        tips,
         "error":       error,
-        "generated":   generated,   # ← was missing
-        "skills_list": skills_list, # ← was missing
+        "generated":   generated,
+        "skills_list": skills_list,
         "has_resume":  bool(profile.resume_text),
     })
+ 
 
 
 # ─────────────────────────────────────────────────────────────────────────────
