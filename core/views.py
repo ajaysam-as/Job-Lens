@@ -911,7 +911,9 @@ def tracker_delete(request, pk):
 @login_required
 def resume_tips(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
- 
+    logger.info("resume_tips method=%s", request.method)
+
+    # Build skills chips for the hero row
     skills_list = []
     if profile.skills:
         try:
