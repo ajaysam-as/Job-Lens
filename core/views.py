@@ -1,3 +1,4 @@
+from django.db.models.fields import generated
 from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.models import User
@@ -975,6 +976,7 @@ def resume_tips(request):
                 logger.error("resume_tips error: %s", e, exc_info=True)
                 error = f"Error: {type(e).__name__}: {e}"
  
+    logger.info("resume_tips render: generated=%s tips=%s error=%s", generated, bool(tips), error)
     return render(request, "core/resume_tips.html", {
         "profile":     profile,
         "tips":        tips,
@@ -983,7 +985,6 @@ def resume_tips(request):
         "skills_list": skills_list,
         "has_resume":  bool(profile.resume_text),
     })
- 
 
 
 # ─────────────────────────────────────────────────────────────────────────────
