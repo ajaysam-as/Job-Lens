@@ -80,12 +80,13 @@ def extract_text_from_docx(file):
     doc = docx.Document(io.BytesIO(file.read()))
     return "\n".join(para.text for para in doc.paragraphs)
 
-def ai_call(messages_list, max_tokens=500, temp=0.1):
+def ai_call(messages_list, max_tokens=500, temp=0.1, timeout=30):
     client = get_groq()
     r = client.chat.completions.create(
-        model=MODEL, messages=messages_list, max_tokens=max_tokens, temperature=temp)
+        model=MODEL, messages=messages_list, max_tokens=max_tokens,
+        temperature=temp, timeout=timeout)
     return r.choices[0].message.content.strip()
-
+    
 def ai_extract_skills(resume_text):
     prompt = f"""Extract from this resume. Return ONLY valid JSON, no markdown:
 {{"skills":["skill1"],"job_titles":["title1"],"experience_years":0,"location":"city","summary":"2 sentence summary"}}
