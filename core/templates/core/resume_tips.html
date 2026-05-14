@@ -111,14 +111,14 @@
     </div>
     {% endif %}
   </div>
-  <form method="POST" action="{{ request.path }}">
+ <form method="POST" action="{{ request.path }}" onsubmit="setLoading()">
     {% csrf_token %}
     {% if generated %}
-    <button type="submit" class="btn btn-outline gen-btn" id="genBtn" onclick="setLoading()">
+    <button type="submit" class="btn btn-outline gen-btn" id="genBtn">
       🔄 Regenerate
     </button>
     {% else %}
-    <button type="submit" class="btn btn-primary gen-btn" id="genBtn" onclick="setLoading()">
+    <button type="submit" class="btn btn-primary gen-btn" id="genBtn">
       🤖 Generate Tips
     </button>
     {% endif %}
