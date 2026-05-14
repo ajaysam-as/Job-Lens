@@ -998,9 +998,9 @@ def post_job(request):
     """
     FIXES applied:
       • posted_by=  (was hirer=)
-      • company_name=  (was company=)
+      • company_name        = request.POST.get("company_name", "").strip(),
       • salary_min/salary_max  (was salary_range= which doesn't exist on model)
-      • how_to_apply=  (was apply_url= which doesn't exist on model)
+      • how_to_apply        = request.POST.get("how_to_apply", "").strip(),
       • status="pending_payment"  (was is_active=True which doesn't exist on model)
       • razorpay_order_id=  (was order_id=)
       • razorpay_payment_id=  (was payment_id=)
@@ -1031,15 +1031,12 @@ def post_job(request):
             return redirect("post_job")
 
         # 2. Parse optional salary range ("50000-80000" or "60000")
-        salary_raw = request.POST.get("salary_range", "").strip()
-        salary_min = salary_max = None
-        if salary_raw:
-            parts = salary_raw.replace("–", "-").split("-")
-            try:
-                salary_min = int(parts[0].strip().replace(",", "").replace("₹", ""))
-                salary_max = int(parts[1].strip().replace(",", "").replace("₹", "")) if len(parts) > 1 else salary_min
-            except (ValueError, IndexError):
-                pass
+        ssalary_min = salary_max = None
+        try:
+            salary_min = int(request.POST.get("salary_min", "") or 0) or None
+            salary_max = int(request.POST.get("salary_max", "") or 0) or None
+        except (ValueError, TypeError):
+            pass
 
         # 3. Create JobPosting with correct field names
         job = JobPosting.objects.create(

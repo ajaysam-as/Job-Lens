@@ -243,14 +243,19 @@
         </div><!-- /.form-col -->
       </div><!-- /.form-layout -->
 
+      <!-- Hidden Razorpay fields — filled by JS after successful payment -->
+      <input type="hidden" name="razorpay_order_id"   id="razorpay_order_id"   value="">
+      <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id" value="">
+      <input type="hidden" name="razorpay_signature"  id="razorpay_signature"  value="">
+
       <!-- ── Submit Bar ────────────────────────────────────────────────────── -->
       <div class="submit-bar">
         <div class="submit-info">
-          <span>🔒 Secure checkout via Razorpay after review</span>
+          <span>🔒 Secure checkout via Razorpay</span>
           <span>·</span>
           <span>₹999 · 30-day listing</span>
         </div>
-        <button type="submit" class="submit-btn" id="submit-btn">
+        <button type="button" class="submit-btn" id="submit-btn" onclick="openRazorpay()">
           Continue to Payment →
         </button>
       </div>
@@ -450,4 +455,71 @@ document.getElementById("logo-remove").addEventListener("click", () => {
   .submit-btn { text-align: center; }
 }
 </style>
+
+<!-- Razorpay Checkout -->
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const RAZORPAY_KEY_ID   = "{{ razorpay_key_id }}";
+const RAZORPAY_ORDER_ID = "{{ razorpay_order_id }}";
+const RAZORPAY_ERROR    = "{{ razorpay_error }}";
+
+if (RAZORPAY_ERROR) {
+  document.querySelector('.submit-btn').disabled = true;
+  document.querySelector('.submit-btn').textContent = '⚠ Payment unavailable';
+  const wrap = document.querySelector('.messages-wrap') || (() => {
+    const d = document.createElement('div');
+    d.className = 'messages-wrap';
+    document.querySelector('.page-header').after(d);
+    return d;
+  })();
+  wrap.innerHTML += `<div class="alert alert-error">${RAZORPAY_ERROR}</div>`;
+}
+
+function openRazorpay() {
+  const title   = document.getElementById('title').value.trim();
+  const company = document.getElementById('company_name').value.trim();
+  const loc     = document.getElementById('location').value.trim();
+  const desc    = document.getElementById('description').value.trim();
+  const apply   = document.getElementById('how_to_apply').value.trim();
+  const skills  = document.getElementById('skills_required').value.trim();
+
+  if (!title || !company || !loc || !desc || !apply || !skills) {
+    alert('Please fill in all required fields before proceeding to payment.');
+    return;
+  }
+  if (!RAZORPAY_ORDER_ID) {
+    alert('Payment gateway unavailable. Please refresh and try again.');
+    return;
+  }
+
+  const options = {
+    key:         RAZORPAY_KEY_ID,
+    amount:      99900,
+    currency:    'INR',
+    name:        'JobLens',
+    description: 'Job Posting — 30 days live',
+    order_id:    RAZORPAY_ORDER_ID,
+    prefill: {
+      name:  "{{ request.user.get_full_name|default:request.user.username }}",
+      email: "{{ request.user.email }}",
+    },
+    theme: { color: '#FF6B35' },
+    handler: function(response) {
+      document.getElementById('razorpay_order_id').value   = response.razorpay_order_id;
+      document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
+      document.getElementById('razorpay_signature').value  = response.razorpay_signature;
+      document.querySelector('form').submit();
+    },
+    modal: {
+      ondismiss: function() { console.log('Payment cancelled'); }
+    }
+  };
+
+  const rzp = new Razorpay(options);
+  rzp.on('payment.failed', function(r) {
+    alert('Payment failed: ' + r.error.description);
+  });
+  rzp.open();
+}
+</script>
 {% endblock %}
